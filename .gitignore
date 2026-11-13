@@ -7,3 +7,6 @@ node_modules/
 
 # Briefings reais ficam só na máquina (contêm IDs e regras de projetos); o exemplo fictício vive em examples/
 briefings/*.briefing.toml
+
+# Binários do harness em Go
+harness/bin/
