@@ -1,0 +1,62 @@
+name: social-drafts
+
+# Gera rascunhos de posts (LinkedIn, X, build log) quando uma versão nova entra na branch principal e os abre
+# como issue para revisão. Não publica nada. Detalhes: tools/social/README.md
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Gerar mesmo sem mudança de versão"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: social-drafts
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: SDK do Claude (só com chave configurada)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then pip install --quiet "anthropic>=2.8,<3"; fi
+      - name: Rascunhos
+        id: draft
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SOCIAL_DENYLIST: ${{ secrets.SOCIAL_DENYLIST }}
+          SOCIAL_LANG: ${{ vars.SOCIAL_LANG }}
+          SOCIAL_MODEL: ${{ vars.SOCIAL_MODEL }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: |
+          args=(--after "$AFTER" --out "$RUNNER_TEMP/drafts.md")
+          [ -n "$BEFORE" ] && args+=(--before "$BEFORE")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          [ -z "$SOCIAL_LANG" ] && unset SOCIAL_LANG
+          [ -z "$SOCIAL_MODEL" ] && unset SOCIAL_MODEL
+          python tools/social/draft_posts.py "${args[@]}"
+      - name: Abre issue para revisão
+        if: steps.draft.outputs.should_post == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.draft.outputs.title }}
+        run: |
+          gh label create social-draft --color 0E8A16 --description "Rascunho de post para revisar" --force
+          gh issue create --title "$TITLE" --label social-draft --body-file "$RUNNER_TEMP/drafts.md"

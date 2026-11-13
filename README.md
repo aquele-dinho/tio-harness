@@ -83,6 +83,7 @@ examples/                       briefing de referência fictício (Gestor de Ped
 packs/<nome>/{pack.toml,files/} capacidades instaláveis
 briefings/                      briefings dos projetos atendidos (somente locais, ignorados pelo Git)
 .agents/skills/framework-bootstrap   skill para operar o framework via agente
+tools/social/                   rascunhos de posts (LinkedIn, X, build log) a cada versão na main; ver tools/social/README.md
 ```
 
 ## Evoluir o framework
