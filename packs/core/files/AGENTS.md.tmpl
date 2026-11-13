@@ -39,6 +39,9 @@ Idioma:
   Execução acompanhada no Jira, projeto **@@atlassian.jira_project@@**. Protocolo de sincronia:
   [`docs/sdd/CONFLUENCE-SYNC.md`](./docs/sdd/CONFLUENCE-SYNC.md).
 @@endif@@
+@@if project.anchor_ticket@@
+- **Ticket âncora** (item-mãe deste esforço no rastreador): `@@project.anchor_ticket@@`.
+@@endif@@
 @@if sources.archive_dirs@@
 - **Somente leitura, nunca fonte viva:** @@sources.archive_dirs@@ (backup histórico).
 @@endif@@
@@ -185,6 +188,10 @@ framework: `python3 <framework>/bin/tioh.py check .`.
 ## 10. Regras de trabalho para agentes
 - **Não alucinar:** só afirme o que está nas fontes oficiais (§2). Onde faltar decisão, marque
   `⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx)` ou `⚠️ A DEFINIR` — nunca preencha com suposição silenciosa.
+- **Campo `A DEFINIR` não é valor:** se perguntarem por um dado marcado `A DEFINIR`, diga que ele está indefinido (no formato e idioma que o usuário pediu, ex.: "unknown") e, se couber, quem decide. O nome depois de `decide:` é o responsável, nunca o valor.
+@@if has.quality_gates@@
+- **Gates verificados por código:** o que é aplicado de verdade (permissões, CI de commit/branch) está em `docs/sdd/GATES.md`; o resto desta lista é orientação.
+@@endif@@
 - **Proibido inventar regra de formato ou validação:** regex, tamanho de campo, dígito verificador, faixa
   numérica, enum, timeout, SLA, política de retentativa e limite de paginação só entram com fonte.
 @@if architecture.principles@@

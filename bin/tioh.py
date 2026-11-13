@@ -15,6 +15,7 @@ Uso:
 import argparse
 import copy
 import datetime
+import difflib
 import hashlib
 import json
 import os
@@ -24,7 +25,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-VERSION = "0.5.1"
+VERSION = "0.6.0"
 ROOT = Path(__file__).resolve().parent.parent
 PACKS_DIR = ROOT / "packs"
 BRIEFING_TEMPLATE = ROOT / "briefing" / "briefing.template.toml"
@@ -98,6 +99,9 @@ _STANDALONE = re.compile(rf"^[ \t]*(@@{_BLOCK}@@)[ \t]*\r?\n", re.M)
 _TAG = re.compile(r"@@((?:(?!@@).)+?)@@")
 
 
+_MISSING = None   # lista quando `collect_missing` está ativo
+
+
 def _lookup(scopes, path, strict, where):
     for scope in reversed(scopes):
         cur, ok = scope, True
@@ -110,6 +114,9 @@ def _lookup(scopes, path, strict, where):
         if ok:
             return cur
     if strict:
+        if _MISSING is not None:          # modo `validate`: acumula tudo para reportar de uma vez
+            _MISSING.append((where, path))
+            return ""
         raise TemplateError(f"{where}: variável indefinida '{path}'")
     return None
 
@@ -128,6 +135,33 @@ def _cond(expr, scopes, where):
     return not res if neg else res
 
 
+_GAP_VALUE = re.compile(rf"^\s*(?:>\s*)?(?:⚠️?\s*)?{PENDING_MARK}\b")
+_GAP_OWNER = re.compile(r"\s*\((?:responde|resp\.?|owner|responsável)\s*:\s*([^)]*)\)\s*$", re.I)
+
+
+def gap_text(val):
+    """Normaliza uma lacuna do briefing para que o nome do responsável não pareça o valor.
+
+    '⚠️ A DEFINIR: chave do Jira (responde: PO)' -> '⚠️ A DEFINIR (valor indefinido, não presumir): chave do Jira; decide: PO'.
+    Só valores que SÃO lacuna (começam com a marca) mudam; texto que apenas menciona "A DEFINIR" passa intacto.
+    """
+    if not isinstance(val, str) or not _GAP_VALUE.match(val):
+        return val
+    owner = ""
+    m = _GAP_OWNER.search(val)
+    if m:
+        owner, val = m.group(1).strip(), val[:m.start()]
+    body = val.strip()
+    head, sep, rest = body.partition(PENDING_MARK)
+    rest = rest.lstrip(" :—-").rstrip()
+    out = f"{head}{PENDING_MARK} (valor indefinido, não presumir)"
+    if rest:
+        out += f": {rest}"
+    if owner:
+        out += f"; decide: {owner}"
+    return out
+
+
 def _fmt(val, filt, where, path):
     if val is None:
         raise TemplateError(f"{where}: '{path}' está vazio")
@@ -140,10 +174,10 @@ def _fmt(val, filt, where, path):
     if filt:
         raise TemplateError(f"{where}: filtro desconhecido '{filt}'")
     if isinstance(val, list):
-        return ", ".join(f"`{v}`" if isinstance(v, str) else str(v) for v in val)
+        return ", ".join(f"`{gap_text(v)}`" if isinstance(v, str) else str(v) for v in val)
     if isinstance(val, bool):
         return "sim" if val else "não"
-    return str(val)
+    return str(gap_text(val))
 
 
 def _parse(tokens, i, stop):
@@ -216,7 +250,12 @@ def load_briefing(path):
     if not path.is_file():
         sys.exit(f"briefing não encontrado: {path}")
     raw = path.read_bytes()
-    data = json.loads(raw) if path.suffix == ".json" else tomllib.loads(raw.decode("utf-8"))
+    try:
+        data = json.loads(raw) if path.suffix == ".json" else tomllib.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:      # TOMLDecodeError e JSONDecodeError herdam de ValueError
+        sys.exit(f"briefing ilegível ({path.name}): {e}")
+    if not isinstance(data, dict):
+        sys.exit(f"briefing ilegível ({path.name}): a raiz precisa ser uma tabela")
     return data, raw
 
 
@@ -240,8 +279,139 @@ def _pending_count(node):
 
 def validate(data):
     missing = [k for k in REQUIRED if _get(data, k) in (None, "", [])]
-    unknown = [p for p in _get(data, "packs.enabled") or [] if not (PACKS_DIR / p / "pack.toml").is_file()]
+    unknown = [p for p in _get(data, "packs.enabled") or [] if isinstance(p, str)
+               and not (PACKS_DIR / p / "pack.toml").is_file()]
     return missing, unknown, _pending_count(data)
+
+
+AGENT_TARGETS = ("copilot", "claude", "gemini", "warp", "codex")
+_STR_FIELDS = ["project.name", "project.slug", "project.description", "project.output_language",
+               "sources.primary.title", "sdd.spec_dir", "sdd.unit", "vcs.host", "vcs.base_branch"]
+_LIST_FIELDS = ["agents.targets", "packs.enabled"]
+
+
+def _suggest(word, options):
+    near = difflib.get_close_matches(word, list(options), n=1, cutoff=0.6)
+    return f" (você quis dizer '{near[0]}'?)" if near else ""
+
+
+def type_problems(data):
+    """Erros de tipo e de valor (bloqueiam a instalação)."""
+    errs = []
+    for k in _STR_FIELDS:
+        v = _get(data, k)
+        if v is not None and not isinstance(v, str):
+            errs.append(f"{k} deveria ser texto, veio {type(v).__name__}")
+    for k in _LIST_FIELDS:
+        v = _get(data, k)
+        if v is None:
+            continue
+        if not isinstance(v, list) or not all(isinstance(i, str) for i in v):
+            errs.append(f"{k} deveria ser uma lista de textos (ex.: [\"core\"]), veio {v!r}")
+    targets = _get(data, "agents.targets")
+    if isinstance(targets, list):
+        for t in targets:
+            if isinstance(t, str) and t not in AGENT_TARGETS:
+                errs.append(f"agents.targets: agente desconhecido '{t}'{_suggest(t, AGENT_TARGETS)}; válidos: {', '.join(AGENT_TARGETS)}")
+    host = _get(data, "vcs.host")
+    if isinstance(host, str) and host not in _VCS:
+        errs.append(f"vcs.host: '{host}' desconhecido{_suggest(host, _VCS)}; válidos: {', '.join(_VCS)}")
+    return errs
+
+
+_VAR_REF = re.compile(r"@@\s*(?:if\s+|for\s+\w+\s+in\s+)?(?:not\s+)?([a-z_]+(?:\.[a-z_0-9]+)+)")
+_COMMENTED_KEY = re.compile(r"^#\s*([a-z_][a-z_0-9]*)\s*=", re.M)
+
+
+def known_paths():
+    """Caminhos de briefing conhecidos: defaults + modelo (inclusive chaves comentadas) + variáveis usadas nos packs."""
+    paths = set()
+
+    def walk(node, pre):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                path = f"{pre}.{k}" if pre else k
+                paths.add(path)
+                walk(v, path)
+        elif isinstance(node, list) and node and isinstance(node[0], dict):
+            walk(node[0], pre)
+
+    walk(DEFAULTS, "")
+    if BRIEFING_TEMPLATE.is_file():
+        text = BRIEFING_TEMPLATE.read_text(encoding="utf-8")
+        walk(tomllib.loads(text), "")
+        section = ""
+        for line in text.splitlines():
+            m = re.match(r"^#?\s*\[\[?([a-z_][a-z_0-9.]*)\]\]?", line)
+            if m:
+                section = m.group(1)
+                paths.add(section)
+                continue
+            m = _COMMENTED_KEY.match(line)
+            if m:
+                paths.add(f"{section}.{m.group(1)}" if section else m.group(1))
+    for f in PACKS_DIR.rglob("*"):
+        if f.is_file() and not IGNORED_DIRS & set(f.parts):
+            try:
+                text = f.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            for m in _VAR_REF.finditer(text):
+                parts = m.group(1).split(".")
+                for i in range(1, len(parts) + 1):
+                    paths.add(".".join(parts[:i]))
+    return paths
+
+
+def unknown_key_warnings(data):
+    """Chaves que o framework não conhece (provável erro de digitação). Só avisa: o briefing pode ter extras."""
+    known = known_paths()
+    warns = []
+
+    def siblings(pre):
+        if not pre:
+            return {p.split(".")[0] for p in known}
+        return {p[len(pre) + 1:].split(".")[0] for p in known if p.startswith(pre + ".")}
+
+    def walk(node, pre):
+        if not isinstance(node, dict):
+            return
+        sibs = siblings(pre)
+        if pre and not sibs:               # tabela de forma livre (ex.: mapas): não há o que comparar
+            return
+        for k, v in node.items():
+            path = f"{pre}.{k}" if pre else k
+            if path not in known:
+                warns.append(f"chave desconhecida '{path}'{_suggest(k, sibs)}")
+            else:
+                walk(v, path)
+
+    walk(data, "")
+    return warns
+
+
+def collect_missing(fn):
+    """Roda `fn` acumulando TODAS as variáveis ausentes em vez de parar na primeira."""
+    global _MISSING
+    _MISSING = []
+    try:
+        fn()
+        return list(dict.fromkeys(_MISSING))
+    finally:
+        _MISSING = None
+
+
+def explain_missing(missing):
+    """Traduz (arquivo, variável) em orientação: qual pack precisa de qual campo do briefing."""
+    by_var = {}
+    for where, path in missing:
+        by_var.setdefault(path, set()).add(where.split("/", 1)[0].split(":")[0])
+    out = []
+    for path, packs in sorted(by_var.items()):
+        sec, _, key = path.rpartition(".")
+        loc = f"[{sec}] {key}" if sec else path
+        out.append(f"falta {loc} (usado por: {', '.join(sorted(packs))})")
+    return out
 
 
 _VCS = {
@@ -391,24 +561,34 @@ def cmd_init(a):
     print(f"briefing criado: {dst}\nPreencha-o (ou use o bootstrap a partir de documento) e rode `validate`.")
 
 
+def diagnose(data):
+    """Todos os problemas do briefing: (erros, avisos, lacunas). Erros bloqueiam; avisos não."""
+    missing, unknown, pend = validate(data)
+    errs = [f"campo obrigatório ausente: {k}" for k in missing]
+    errs += [f"pack '{p}' não existe em packs/{_suggest(p, [d.name for d in PACKS_DIR.iterdir() if d.is_dir()])}" for p in unknown]
+    errs += type_problems(data)
+    warns = unknown_key_warnings(data)
+    if not errs:
+        try:
+            ctx = build_context(data)
+            absent = collect_missing(lambda: plan_files(resolve_packs(_get(data, "packs.enabled") or []), ctx))
+            errs += explain_missing(absent)
+        except TemplateError as e:
+            errs.append(f"template: {e}")
+    return errs, warns, pend
+
+
 def cmd_validate(a):
     data, _ = load_briefing(a.briefing)
-    missing, unknown, pend = validate(data)
-    for k in missing:
-        print(f"FALTA   {k}")
-    for p in unknown:
-        print(f"PACK?   {p} (não existe em packs/)")
+    errs, warns, pend = diagnose(data)
+    for e in errs:
+        print(f"ERRO    {e}")
+    for w in warns:
+        print(f"AVISO   {w}")
     print(f"Lacunas marcadas '{PENDING_MARK}': {pend}")
-    try:
-        ctx = build_context(data)
-        if not unknown:
-            plan_files(resolve_packs(_get(data, "packs.enabled") or []), ctx)
-    except TemplateError as e:
-        print(f"TEMPLATE {e}")
+    if errs:
         sys.exit(1)
-    if missing or unknown:
-        sys.exit(1)
-    print("Briefing válido.")
+    print("Briefing válido." + (f" ({len(warns)} aviso(s))" if warns else ""))
 
 
 def cmd_packs(_a):
@@ -425,9 +605,9 @@ def _load_manifest(target):
 
 def cmd_install(a):
     data, raw = load_briefing(a.briefing)
-    missing, unknown, pend = validate(data)
-    if missing or unknown:
-        sys.exit(f"briefing inválido — falta: {missing}; packs desconhecidos: {unknown}. Rode `validate`.")
+    errs, _warns, pend = diagnose(data)
+    if errs:
+        sys.exit("briefing inválido:\n  - " + "\n  - ".join(errs) + "\nRode `tioh validate <briefing>` para o relatório completo.")
     target = Path(a.target).resolve()
     if not target.is_dir():
         sys.exit(f"destino não existe: {target}")

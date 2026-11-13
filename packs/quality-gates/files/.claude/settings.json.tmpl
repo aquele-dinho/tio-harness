@@ -1,0 +1,22 @@
+{
+@@if rules.no_agent_attribution@@
+  "attribution": { "commit": "", "pr": "" },
+@@endif@@
+  "permissions": {
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(@@vcs.cli@@ @@vcs.mr|lower@@ merge:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(git branch -D:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)"
+    ]
+  }
+}

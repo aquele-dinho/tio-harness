@@ -1,0 +1,15 @@
+# Gate determinístico do harness. Inclua no seu .gitlab-ci.yml:
+#   include:
+#     - local: .gitlab/tioh-gate.gitlab-ci.yml
+tioh-gate:
+  stage: test
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - python3 scripts/sdd/gate.py commits --range "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME..HEAD"
+    - python3 scripts/sdd/gate.py branch --branch "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+    - python3 scripts/sdd/gate.py gaps

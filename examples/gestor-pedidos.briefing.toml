@@ -220,4 +220,4 @@ extra = [
 targets = ["copilot", "claude", "gemini", "warp"]
 
 [packs]
-enabled = ["core", "atlassian", "architecture-advisor", "meeting-intake", "tl-review", "java-spring-hexagonal", "playwright-qa", "parallel-lanes", "md2html"]
+enabled = ["core", "atlassian", "architecture-advisor", "meeting-intake", "tl-review", "java-spring-hexagonal", "playwright-qa", "parallel-lanes", "md2html", "quality-gates"]

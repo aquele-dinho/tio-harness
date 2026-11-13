@@ -1,0 +1,24 @@
+# Gates de qualidade — @@project.name@@
+
+O `AGENTS.md` descreve regras em texto; um agente pode ignorá-las. Este pack instala o que é **verificado por
+código**, sem LLM. O que não está nesta tabela continua sendo só orientação.
+
+| Regra | Onde é aplicada | Efeito |
+|---|---|---|
+| Push e `@@vcs.cli@@ @@vcs.mr|lower@@ merge` pedem confirmação humana | `.claude/settings.json` (`permissions.ask`) | o Claude Code pergunta antes de executar |
+| `git push --force`/`-f` (flag logo após `push`) e leitura de `.env`/chaves são negados | `.claude/settings.json` (`permissions.deny`) | o Claude Code recusa |
+@@if rules.no_agent_attribution@@
+| Sem atribuição de agente em commits e PRs | `.claude/settings.json` (`attribution` vazio) e `gate.py commits` | o commit/PR sai sem a linha; o CI reprova se houver |
+@@endif@@
+| Mensagem de commit no formato Conventional Commits | `scripts/sdd/gate.py commits` (CI) | reprova o @@vcs.mr@@ |
+| Nome da branch segue `@@vcs.branch_pattern@@` | `scripts/sdd/gate.py branch` (CI) | reprova o @@vcs.mr@@ |
+| Lacunas `A DEFINIR` nas specs | `scripts/sdd/gate.py gaps` | informa; com `--strict` reprova |
+
+Uso local: `python3 scripts/sdd/gate.py commits --range origin/@@vcs.base_branch@@..HEAD`.
+
+As regras de permissão casam pelo **início** do comando: formas como `git push origin main --force` ou
+`git push origin +main` não batem no `deny`, mas caem no `ask` de todo `git push` — um humano confirma. Proteja a
+branch base no servidor (`@@vcs.base_branch@@` protegida) para fechar o caso de vez.
+
+As permissões valem para o Claude Code. Para os demais agentes, o gate de CI continua valendo, mas a confirmação
+antes do push depende da configuração de cada ferramenta.

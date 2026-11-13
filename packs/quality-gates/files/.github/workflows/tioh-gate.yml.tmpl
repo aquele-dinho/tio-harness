@@ -1,0 +1,28 @@
+name: tioh-gate
+# Gate determinístico do harness: falha o PR se commits/branch violarem as regras do projeto.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Commits
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/sdd/gate.py commits --range "origin/${BASE_REF}..HEAD"
+      - name: Branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: python3 scripts/sdd/gate.py branch --branch "${HEAD_REF}"
+      - name: Lacunas (informativo)
+        run: python3 scripts/sdd/gate.py gaps

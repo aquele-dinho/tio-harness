@@ -1,0 +1,9 @@
+name = "quality-gates"
+description = "Gates determinísticos (sem LLM): permissões do Claude Code, verificação de commits/branch/lacunas e CI — o que as regras em prosa do AGENTS.md não garantem sozinhas"
+requires = []
+
+# Prefixo de caminho → condição.
+[when]
+".claude/" = "agents.claude"
+".github/" = 'vcs.host == "github"'
+".gitlab/" = 'vcs.host == "gitlab"'
