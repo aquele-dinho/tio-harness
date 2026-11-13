@@ -1,0 +1,49 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: python (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    # Windows ainda não foi exercitado numa máquina real: falha dele não bloqueia, mas aparece.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Testes
+        run: python -m unittest discover -s tests -v
+      - name: Validação do exemplo
+        run: python bin/tioh.py validate examples/gestor-pedidos.briefing.toml
+      - name: Instala e confere drift
+        shell: bash
+        run: |
+          d="$(mktemp -d)"
+          python bin/tioh.py install examples/gestor-pedidos.briefing.toml "$d"
+          python bin/tioh.py check "$d"
+
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harness
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: harness/go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test ./... -race -count=1

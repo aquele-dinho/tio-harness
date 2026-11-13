@@ -25,9 +25,14 @@ Briefings de projetos atendidos ficam em `briefings/` e são **ignorados pelo Gi
   ferramentas por autodetecção + variável de ambiente/briefing, nunca um caminho de máquina embutido.
 - **Validação mínima antes de commitar:**
   ```bash
+  python3 -m unittest discover -s tests
   python3 bin/tioh.py validate examples/gestor-pedidos.briefing.toml
   rm -rf /tmp/tioh-t && mkdir /tmp/tioh-t && python3 bin/tioh.py install examples/gestor-pedidos.briefing.toml /tmp/tioh-t
   grep -rn '@@' /tmp/tioh-t --exclude-dir=scripts ; python3 bin/tioh.py check /tmp/tioh-t
   ```
+- **Harness em Go (`harness/`, `tioh-agent`):** antes de commitar mudanças nele: `cd harness && gofmt -l . ; go vet ./... && go test ./... -race`.
+  `eval` mede o harness instalado com um modelo local (sondas geradas do briefing); `ask` é somente leitura e confinado a `--root`;
+  qualquer ferramenta que escreva/execute exige gate humano e teste de sandbox.
+- **Enforcement:** regra que importa deve ser verificada por código (pack `quality-gates`), não só escrita no AGENTS.md.
 - Não registrar uso de agentes em commits, comentários ou documentos; sem `Co-Authored-By`.
 - Sem remoto por padrão; commits só quando solicitado.

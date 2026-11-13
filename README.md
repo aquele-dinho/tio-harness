@@ -63,6 +63,7 @@ flowchart LR
 | `playwright-qa` | skill `qa-playwright-scenario` |
 | `parallel-lanes` | subagente `lane-executor` (Claude Code) para worktrees |
 | `md2html` | conversor Markdown → HTML autocontido (Mermaid em SVG via navegador Chromium headless, multiplataforma) |
+| `quality-gates` | o que é **verificado por código** em vez de só pedido em prosa: permissões do Claude Code (push/merge pedem confirmação, push forçado e `.env` negados, sem atribuição de agente), `gate.py` (commits, branch, lacunas) e CI para GitHub/GitLab |
 
 ## Princípios
 1. **Não alucinar** — sem fonte, `⚠️ A DEFINIR`/`⚠️ PENDÊNCIA`; nunca valor plausível.
@@ -73,7 +74,9 @@ flowchart LR
 
 ## Estrutura
 ```text
-bin/tioh.py                      CLI (init, validate, packs, install, check) + motor de templates
+bin/tioh.py                      CLI (init, validate, packs, install, check, accept) + motor de templates
+tests/                           testes do CLI e dos gates (stdlib): python3 -m unittest discover -s tests
+harness/                         tioh-agent: avalia o harness com um modelo local (`eval`) e agente com function calling (`ask`), ver harness/README.md
 briefing/                       template e esquema do briefing
 bootstrap/                      prompt canônico documento → briefing
 examples/                       briefing de referência fictício (Gestor de Pedidos)
@@ -86,3 +89,15 @@ briefings/                      briefings dos projetos atendidos (somente locais
 Melhoria nascida num projeto (ex.: ajuste numa skill) deve voltar ao pack correspondente aqui, de forma
 genérica (campo novo no briefing, se preciso). Depois: `validate` no exemplo, `install --dry-run` num
 diretório temporário e conferir que não sobra `@@` no resultado. Ver [AGENTS.md](AGENTS.md).
+
+### Medir se o harness funciona
+`validate` e os testes garantem que a instalação é correta; **não** dizem se o modelo passa a se comportar melhor.
+Para isso, com um modelo local (LM Studio/Ollama) rodando:
+```bash
+cd harness && go build -o bin/tioh-agent ./cmd/tioh-agent
+./bin/tioh-agent eval --project ~/Projects/meu-projeto            # sem harness × regra genérica × AGENTS.md instalado
+./bin/tioh-agent eval --project ~/Projects/meu-projeto --min-pass 0.8 --min-lift 0.3   # vira gate (sai 1 se não entregar)
+```
+As perguntas são geradas do próprio briefing (branch, comando de teste, estados, formato de commit, lacunas) e a
+correção é por regex, sem LLM-juiz. Resultado de uma amostra pequena num modelo pequeno: indício, não prova.
+
