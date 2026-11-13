@@ -19,6 +19,10 @@ Briefings de projetos atendidos ficam em `briefings/` e são **ignorados pelo Gi
 - **Pack novo:** `packs/<nome>/pack.toml` (`name`, `description`, `requires`, `[when]` opcional) + `files/`.
 - **Versão:** subir `VERSION` em `bin/tioh.py` a cada mudança que altere arquivos instalados — o `check` dos projetos
   passa a acusar a diferença.
+- **Multiplataforma (macOS, Linux, Windows/WSL):** fins de linha **LF** sempre (`.gitattributes`; não commitar CRLF);
+  caminhos com `pathlib`/`os.path`/`path.join` e URLs de arquivo com `Path.as_uri()`/`pathToFileURL` (nada de
+  `/mnt/...`, `C:\` ou `file://` + caminho fixos); `open()`/`read_text()` sempre com `encoding='utf-8'`; navegador e
+  ferramentas por autodetecção + variável de ambiente/briefing, nunca um caminho de máquina embutido.
 - **Validação mínima antes de commitar:**
   ```bash
   python3 bin/tioh.py validate examples/gestor-pedidos.briefing.toml

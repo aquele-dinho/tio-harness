@@ -66,7 +66,7 @@ def main():
         line = f"{datetime.datetime.now().isoformat(timespec='seconds')}\t{sha}\t{line}"
         print(line)
         if a.apply:
-            with open(LOG, 'a') as f:
+            with open(LOG, 'a', encoding='utf-8') as f:
                 f.write(line + '\n')
 
     for n in a.modulos or sorted(PAGES):
@@ -92,7 +92,7 @@ def main():
         if a.nota:
             body += ('<ac:structured-macro ac:name="info" ac:schema-version="1"><ac:rich-text-body>'
                      f'<p>{esc(a.nota)}</p></ac:rich-text-body></ac:structured-macro>')
-        body += convert(open(path[0]).read())
+        body += convert(open(path[0], encoding='utf-8').read())
         body += (f'<hr /><p><em>Rastreio: fonte <code>{rel}</code> · commit {sha} (blob {blob})'
                  f'{" (com alterações locais)" if dirty else ""} · sincronizado em {hoje} · '
                  f'autor: {esc(autor)}.</em></p>')

@@ -58,7 +58,7 @@ def main():
     ap.add_argument('--saida', help='grava o storage resultante neste arquivo (para inspeção)')
     a = ap.parse_args()
 
-    p = json.load(open(a.patch))
+    p = json.load(open(a.patch, encoding='utf-8'))
     pid, base = str(p['pageId']), int(p['baseVersion'])
     st, d = call('GET', f'/wiki/api/v2/pages/{pid}', params={'body-format': 'storage'})
     if st != 200:
@@ -78,7 +78,7 @@ def main():
     validate(body)
 
     if a.saida:
-        with open(a.saida, 'w') as f:
+        with open(a.saida, 'w', encoding='utf-8') as f:
             f.write(body)
     print(f'\n{pid} "{d["title"]}": v{cur} → v{cur + 1}, {len(p["substituicoes"])} trecho(s)'
           + (f', storage em {a.saida}' if a.saida else ''))
@@ -101,7 +101,7 @@ def main():
         line = (f'{stamp}\tv{cur} → v{r["version"]["number"]}\t{os.path.relpath(a.patch, ROOT)}\t'
                 f'{"OK" if not erros else f"ATENÇÃO: {erros} erro(s) de macro na renderização"}')
     print(line)
-    with open(LOG, 'a') as f:
+    with open(LOG, 'a', encoding='utf-8') as f:
         f.write(line + '\n')
     if st != 200:
         sys.exit(1)

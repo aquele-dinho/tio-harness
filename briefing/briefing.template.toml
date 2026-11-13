@@ -162,11 +162,11 @@ exclude_extra = []              # além dos arquivos do harness e dos archive_di
 labels = []                     # rótulos extras das páginas espelho
 # Opcional: diagramas Mermaid como imagem (sem isso, ficam como código no Confluence)
 mermaid_md2html = ""            # conversor Node md2html (convert.mjs) que gera SVG dos diagramas
-mermaid_browser = ""            # Chromium/Edge para o screenshot (caminho /mnt/<x>/ = Windows via WSL)
+mermaid_browser = ""            # opcional: Chromium para o screenshot. Vazio = autodetecta Chrome/Edge/Chromium/Brave (macOS, Linux, Windows, WSL); caminho explícito sobrepõe (inexistente nesta máquina = aviso e autodetecção)
 
 [meetings]
 # Pack meeting-intake: processamento de transcrições/atas de reunião
-transcripts_dir = ""             # onde o time deixa as transcrições (ex.: "G:\\Meu Drive\\<projeto>")
+transcripts_dir = ""             # onde o time deixa as transcrições (ex.: "~/Google Drive/<projeto>" no macOS/Linux; "G:\\Meu Drive\\<projeto>" no Windows)
 notes_dir = "docs/sdd/atas"     # onde a skill registra as atas
 # Pessoas a mencionar nas respostas que pedem confirmação (account_id do Confluence/Jira):
 # mention = [{ name = "Nome", account_id = "", role = "papel; o que confirma" }]

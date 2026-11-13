@@ -102,7 +102,7 @@ def publicar(rel, page=None, parent=None, titulo=None, toc=False, nota=None, rot
         line = f"{datetime.datetime.now().isoformat(timespec='seconds')}\t{sha}\t{line}"
         print(line)
         if apply:
-            with open(LOG, 'a') as f:
+            with open(LOG, 'a', encoding='utf-8') as f:
                 f.write(line + '\n')
 
     if toc:
@@ -133,7 +133,7 @@ def publicar(rel, page=None, parent=None, titulo=None, toc=False, nota=None, rot
         acao = f'atualizar {pid} "{titulo}" v{old} → v{old + 1}'
     else:
         space, mae = space_id_of(parent)
-        titulo = titulo or re.search(r'\A\s*#\s+(.+)$', open(os.path.join(ROOT, rel)).read(), re.M).group(1).strip()
+        titulo = titulo or re.search(r'\A\s*#\s+(.+)$', open(os.path.join(ROOT, rel), encoding='utf-8').read(), re.M).group(1).strip()
         st, dup = call('GET', '/wiki/api/v2/pages', params={'space-id': space, 'title': titulo})
         if st == 200 and dup.get('results'):
             sys.exit(f'já existe página "{titulo}" no espaço (id {dup["results"][0]["id"]}) — use --page')

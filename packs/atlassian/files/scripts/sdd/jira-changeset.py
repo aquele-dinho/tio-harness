@@ -75,7 +75,7 @@ def texto(n):
 class Changeset:
     def __init__(self, path, apply):
         self.path, self.apply = path, apply
-        self.cs = json.load(open(path))
+        self.cs = json.load(open(path, encoding='utf-8'))
         self.logf = os.path.splitext(path)[0] + '.log'
         self.projeto = self.cs.get('projeto') or CFG.get('jira_project') or sys.exit('defina "projeto" no changeset ou atlassian.jira_project no briefing')
         self.bloco = '-'
@@ -87,12 +87,12 @@ class Changeset:
                 f"{resultado if self.apply or resultado.startswith(('já', 'CONFLITO', 'ERRO')) else 'DRY-RUN: ' + resultado}")
         print(line)
         if self.apply:
-            with open(self.logf, 'a') as f:
+            with open(self.logf, 'a', encoding='utf-8') as f:
                 f.write(line + '\n')
 
     def save(self):
         if self.apply:
-            with open(self.path, 'w') as f:
+            with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(self.cs, f, ensure_ascii=False, indent=1)
 
     def me(self):

@@ -24,7 +24,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 ROOT = Path(__file__).resolve().parent.parent
 PACKS_DIR = ROOT / "packs"
 BRIEFING_TEMPLATE = ROOT / "briefing" / "briefing.template.toml"
@@ -336,8 +336,23 @@ def plan_files(packs, ctx):
     return plan
 
 
-def sha(b):
+def sha_raw(b):
     return hashlib.sha256(b).hexdigest()
+
+
+def sha(b):
+    """SHA-256 com fins de linha normalizados (CRLF → LF) quando o conteúdo é texto: o mesmo arquivo tem o mesmo
+    hash no checkout do macOS/Linux (LF) e no do Windows com autocrlf (CRLF), sem falso drift. Binários (com NUL)
+    ficam intactos."""
+    if b"\r\n" in b and b"\0" not in b:
+        b = b.replace(b"\r\n", b"\n")
+    return sha_raw(b)
+
+
+def sha_any(b):
+    """Hashes aceitos ao comparar com o manifesto: o normalizado e o dos bytes crus (manifestos de versões
+    antigas guardam o hash cru)."""
+    return {sha(b), sha_raw(b)}
 
 
 def classify(target, plan, manifest):
@@ -354,12 +369,12 @@ def classify(target, plan, manifest):
         if not dst.exists():
             out.append((rel, "create"))
             continue
-        cur = sha(dst.read_bytes())
-        if cur == new:
+        cur = sha_any(dst.read_bytes())
+        if new in cur:
             out.append((rel, "same"))
-        elif known.get(rel) == cur:
+        elif known.get(rel) in cur:
             out.append((rel, "update"))
-        elif custom.get(rel) == cur and known.get(rel) == new:
+        elif custom.get(rel) in cur and known.get(rel) in sha_any(item["content"]):
             out.append((rel, "custom"))
         else:
             out.append((rel, "conflict"))
@@ -459,7 +474,7 @@ def cmd_install(a):
             customized.pop(rel, None)
     for rel in obsolete:
         dst = target / rel
-        if a.prune and dst.is_file() and sha(dst.read_bytes()) == files.get(rel):
+        if a.prune and dst.is_file() and files.get(rel) in sha_any(dst.read_bytes()):
             dst.unlink()
             files.pop(rel, None)
 
@@ -534,6 +549,11 @@ def cmd_check(a):
 
 
 def main():
+    for fluxo in (sys.stdout, sys.stderr):   # Windows: console/pipe em cp1252 quebra com acentos e emoji
+        try:
+            fluxo.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(prog="tioh", description=__doc__.split("\n")[0])
     ap.add_argument("--version", action="version", version=VERSION)
     sub = ap.add_subparsers(dest="cmd", required=True)

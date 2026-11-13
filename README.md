@@ -12,7 +12,11 @@ Warp/Oz, Codex) trabalharem ancorados em fonte oficial, sem alucinar regra de ne
 - estado de instalação versionável (`.ai-framework/`) com detecção de drift.
 
 ## Requisitos
-Python **3.11+** (só biblioteca padrão). Node apenas para o pack `md2html`.
+Python **3.11+** (só biblioteca padrão), em macOS, Linux ou Windows (no Windows nativo use `py -3` ou `python` no lugar de
+`python3`; os scripts `.sh` precisam de bash: WSL ou Git Bash).
+
+Só para diagramas Mermaid (pack `md2html` e `atlassian.mirror`): Node e um navegador Chromium (Chrome, Edge, Chromium ou
+Brave). O navegador é autodetectado no macOS, Linux, Windows e WSL; `MD2HTML_BROWSER=/caminho/do/executável` força um.
 
 ## Uso rápido
 ```bash
@@ -43,7 +47,7 @@ flowchart LR
 - **Packs** (`packs/<nome>/`): `pack.toml` + árvore `files/` espelhando o destino. `core` é sempre instalado.
   Liste com `python3 bin/tioh.py packs`.
 - **Templates:** arquivos `*.tmpl` são renderizados com o briefing (sintaxe em [briefing/SCHEMA.md](briefing/SCHEMA.md)).
-- **Reinstalação segura:** o manifesto guarda o hash do que o framework escreveu. Arquivo intocado é
+- **Reinstalação segura:** o manifesto guarda o hash do que o framework escreveu (insensível a fins de linha CRLF/LF). Arquivo intocado é
   atualizado; arquivo **editado no projeto** não é sobrescrito — a versão nova vai para `<arquivo>.tioh-new`
   (`--force` sobrescreve). Arquivos que saíram do framework são listados como obsoletos (`--prune` remove os intocados).
 - **Claude Code:** com `claude` em `agents.targets`, as skills são espelhadas em `.claude/skills/`.
@@ -58,7 +62,7 @@ flowchart LR
 | `java-spring-hexagonal` | skill `hexagonal-module` (business/port + adapter/*) |
 | `playwright-qa` | skill `qa-playwright-scenario` |
 | `parallel-lanes` | subagente `lane-executor` (Claude Code) para worktrees |
-| `md2html` | conversor Markdown → HTML autocontido |
+| `md2html` | conversor Markdown → HTML autocontido (Mermaid em SVG via navegador Chromium headless, multiplataforma) |
 
 ## Princípios
 1. **Não alucinar** — sem fonte, `⚠️ A DEFINIR`/`⚠️ PENDÊNCIA`; nunca valor plausível.

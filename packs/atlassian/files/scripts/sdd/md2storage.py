@@ -169,6 +169,12 @@ def validate(storage):
 
 
 if __name__ == '__main__':
-    s = convert(open(sys.argv[1]).read())
+    # Windows: console e pipes usam cp1252 por padrão e quebram com acentos/emoji; força UTF-8 na saída.
+    for _fluxo in (sys.stdout, sys.stderr):
+        try:
+            _fluxo.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
+    s = convert(open(sys.argv[1], encoding='utf-8').read())
     validate(s)
     print(s)

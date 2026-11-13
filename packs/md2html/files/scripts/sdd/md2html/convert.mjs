@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Converte Markdown do repositório de especificação em HTML autocontido, gravado ao lado do .md:
 //   - imagens locais embutidas em base64;
-//   - diagramas Mermaid pré-renderizados em SVG (Edge headless do Windows, via interop do WSL);
+//   - diagramas Mermaid pré-renderizados em SVG (navegador Chromium headless: Chrome, Edge, Chromium ou Brave);
 //   - links para .md reescritos para .html (âncora preservada);
 //   - âncoras de título no padrão do GitHub, para os sumários internos continuarem funcionando.
 //
@@ -10,18 +10,65 @@
 //   node scripts/sdd/md2html/convert.mjs docs/sdd/arquitetura docs/sdd/analises/x.md
 //
 // Primeira vez: (cd scripts/sdd/md2html && npm ci)
-// Variáveis opcionais: MSEDGE (caminho do msedge.exe), MD2HTML_TMP (pasta do Windows vista pelo WSL).
+// Funciona em macOS, Linux, Windows e WSL. O navegador é autodetectado (PATH, /Applications no macOS,
+// Program Files no Windows/WSL); para forçar um específico: MD2HTML_BROWSER=/caminho/do/executável
+// (MSEDGE, da versão anterior, continua valendo). No WSL com navegador do Windows, MD2HTML_TMP indica a
+// pasta do Windows vista pelo WSL (padrão /mnt/c/Users/Public).
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Marked } from 'marked';
 import { gfmHeadingId } from 'marked-gfm-heading-id';
 
 const require = createRequire(import.meta.url);
-const HERE = path.dirname(new URL(import.meta.url).pathname);
-const EDGE = process.env.MSEDGE || '/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const WIN_TMP = process.env.MD2HTML_TMP || '/mnt/c/Users/Public';
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const WSL_TMP = process.env.MD2HTML_TMP || '/mnt/c/Users/Public';
+
+// ---------- navegador
+const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
+
+function* browserCandidates() {
+  const names = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge',
+    'microsoft-edge-stable', 'brave-browser', 'chrome', 'msedge', 'brave'];
+  const exts = process.platform === 'win32' ? ['.exe', '.cmd', ''] : [''];
+  for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
+    for (const n of names) for (const e of exts) yield path.join(dir, n + e);
+  }
+  if (process.platform === 'darwin') {
+    for (const base of ['/Applications', path.join(os.homedir(), 'Applications')]) {
+      for (const app of ['Google Chrome', 'Microsoft Edge', 'Chromium', 'Brave Browser']) {
+        yield `${base}/${app}.app/Contents/MacOS/${app}`;
+      }
+    }
+  }
+  const winExes = ['Google/Chrome/Application/chrome.exe', 'Microsoft/Edge/Application/msedge.exe',
+    'BraveSoftware/Brave-Browser/Application/brave.exe'];
+  if (process.platform === 'win32') {
+    for (const v of ['ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA']) {
+      if (process.env[v]) for (const e of winExes) yield path.join(process.env[v], ...e.split('/'));
+    }
+  }
+  for (const base of ['/mnt/c/Program Files', '/mnt/c/Program Files (x86)']) {   // WSL: navegador do Windows
+    for (const e of winExes) yield `${base}/${e}`;
+  }
+}
+
+function findBrowser() {
+  const forced = process.env.MD2HTML_BROWSER || process.env.MSEDGE;
+  if (forced) {
+    if (!isFile(forced)) throw new Error(`navegador não encontrado: ${forced} (MD2HTML_BROWSER)`);
+    return forced;
+  }
+  for (const c of browserCandidates()) if (isFile(c)) return c;
+  throw new Error('nenhum navegador Chromium encontrado (Chrome, Edge, Chromium ou Brave); '
+    + 'instale um ou defina MD2HTML_BROWSER com o caminho do executável');
+}
+
+// Linux/WSL chamando um .exe do Windows: precisa de pasta visível pelos dois lados e de caminhos convertidos.
+const isWindowsViaWsl = (b) => process.platform === 'linux' && (/^\/mnt\/[a-z]\//.test(b) || /\.exe$/i.test(b));
 const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -47,20 +94,27 @@ const svgs = renderMermaid(diagrams);
 
 function renderMermaid(list) {
   if (!list.length) return [];
-  if (!fs.existsSync(EDGE)) throw new Error(`Edge não encontrado em ${EDGE} (defina MSEDGE)`);
+  const browser = findBrowser();
+  const viaWsl = isWindowsViaWsl(browser);
   const lib = fs.readFileSync(require.resolve('mermaid/dist/mermaid.min.js'), 'utf8');
   const body = list.map((d, i) => `<pre class="mermaid" id="mmd${i}">${esc(d)}</pre>`).join('\n');
   const page = `<!DOCTYPE html><html><head><meta charset="utf-8"><script>${lib}</script></head><body>${body}
 <script>mermaid.initialize({startOnLoad:false,securityLevel:'loose',theme:'default',flowchart:{useMaxWidth:true},sequence:{useMaxWidth:true}});
 mermaid.run({querySelector:'.mermaid'}).then(()=>document.body.setAttribute('data-done','1'),e=>document.body.setAttribute('data-error',String(e)));</script></body></html>`;
-  const tmp = path.join(WIN_TMP, `md2html-${process.pid}.html`);
-  fs.writeFileSync(tmp, page);
-  const winPath = execFileSync('wslpath', ['-w', tmp]).toString().trim().replace(/\\/g, '/');
+  const work = fs.mkdtempSync(path.join(viaWsl ? WSL_TMP : os.tmpdir(), 'md2html-'));
+  const pageFile = path.join(work, 'page.html');
+  fs.writeFileSync(pageFile, page);
+  // Visão do navegador: no WSL+Windows, caminhos convertidos com wslpath; nos demais casos, o próprio caminho.
+  const toBrowser = (p) => (viaWsl ? execFileSync('wslpath', ['-w', p]).toString().trim() : p);
+  const url = viaWsl ? `file:///${toBrowser(pageFile).replace(/\\/g, '/')}` : pathToFileURL(pageFile).href;
+  const flags = ['--headless=new', '--disable-gpu', '--no-first-run', '--virtual-time-budget=60000', '--dump-dom',
+    `--user-data-dir=${toBrowser(path.join(work, 'perfil'))}`];   // perfil próprio: não colide com um Chrome já aberto
+  if (process.getuid?.() === 0) flags.push('--no-sandbox');         // Chromium não abre o sandbox como root (containers)
   let dom;
   try {
-    dom = execFileSync(EDGE, ['--headless=new', '--disable-gpu', '--virtual-time-budget=60000', '--dump-dom', `file:///${winPath}`],
+    dom = execFileSync(browser, [...flags, url],
       { maxBuffer: 512 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'], timeout: 240000 }).toString();
-  } finally { fs.rmSync(tmp, { force: true }); }
+  } finally { fs.rmSync(work, { recursive: true, force: true, maxRetries: 3 }); }
   if (!dom.includes('data-done="1"')) throw new Error('Mermaid não terminou: ' + (dom.match(/data-error="([^"]*)"/)?.[1] ?? 'sem sinal'));
   return list.map((_, i) => {
     const svg = dom.match(new RegExp(`<pre class="mermaid" id="mmd${i}"[^>]*>([\\s\\S]*?)</pre>`))?.[1].match(/<svg[\s\S]*<\/svg>/);

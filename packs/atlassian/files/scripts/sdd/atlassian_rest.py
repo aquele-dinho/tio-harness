@@ -19,6 +19,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+# Windows: console e pipes usam cp1252 por padrão e quebram com acentos/emoji; força UTF-8 na saída.
+for _fluxo in (sys.stdout, sys.stderr):
+    try:
+        _fluxo.reconfigure(encoding='utf-8', errors='replace')
+    except (AttributeError, ValueError):
+        pass
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 PROJECT_FILE = ROOT / '.ai-framework' / 'project.json'
@@ -56,7 +63,7 @@ def page_url(pid):
 def _auth():
     # O arquivo vem primeiro: é o que costuma ser reescrito numa rotação de token.
     if HDR_FILE.is_file():
-        return re.sub(r'^[Aa]uthorization:\s*', '', HDR_FILE.read_text().strip())
+        return re.sub(r'^[Aa]uthorization:\s*', '', HDR_FILE.read_text(encoding='utf-8').strip())
     env = os.environ.get('ATLASSIAN_REST_AUTHORIZATION', '').strip()
     if env:
         return env

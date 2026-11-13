@@ -91,7 +91,7 @@ Regras:
 - Rodar o status antes de editar um documento espelhado e publicar no mesmo trabalho em que editar.
 - Depois de cada envio, commitar o mapa e regenerar o índice (`gen-confluence-index.py`).
 - Página existente publicada antes do espelhamento entra no mapa com `adopt <arquivo> --page <id>`.
-- Links entre documentos espelhados viram links entre as páginas.@@if atlassian.mirror.mermaid_md2html@@ Diagramas Mermaid viram imagem anexada (`render-mermaid.py`).@@else@@ Diagramas Mermaid ficam como código (configure `mermaid_md2html` e `mermaid_browser` para imagem).@@endif@@
+- Links entre documentos espelhados viram links entre as páginas.@@if atlassian.mirror.mermaid_md2html@@ Diagramas Mermaid viram imagem anexada (`render-mermaid.py`).@@else@@ Diagramas Mermaid ficam como código (configure `mermaid_md2html` para imagem; `mermaid_browser` é opcional: sem ele, o navegador Chromium é autodetectado).@@endif@@
 - Não editar a página espelho direto no Confluence se puder evitar: a edição precisa voltar ao arquivo antes do próximo envio.
 
 @@endif@@
