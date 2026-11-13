@@ -1,5 +1,16 @@
 # Tio Harness
 
+[![CI](https://github.com/aquele-dinho/tio-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/aquele-dinho/tio-harness/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+
+**English:** Tio Harness installs a spec-driven (SDD) *project harness* into a repository from a single `briefing.toml`: an `AGENTS.md` with per-agent
+pointers (`CLAUDE.md`, `GEMINI.md`, Copilot, Warp), `specify → plan → tasks → review` prompts, skills with human gates, and optional enforced
+gates (`.claude/settings.json` permissions, commit/branch checks in CI). It configures the agent you already use; it carries no model or agent of its
+own. Python 3.11+ standard library only, on macOS, Linux and Windows. It is a personal project (v0.6.x) and the templates and docs are in Brazilian
+Portuguese. What was measured, with its limits: [docs/RESULTS.md](docs/RESULTS.md). MIT license. Not accepting contributions for now
+([CONTRIBUTING.md](CONTRIBUTING.md)); forks are welcome.
+
+---
 Framework de **IA agêntica com SDD** (Specification-Driven Development). A partir de um **briefing** — escrito à mão ou gerado de um documento descritivo — ele
 **instala** num projeto todo o harness que faz agentes (GitHub Copilot, Claude Code, Gemini CLI,
 Warp/Oz, Codex) trabalharem ancorados em fonte oficial, sem alucinar regra de negócio:
@@ -99,9 +110,11 @@ cd harness && go build -o bin/tioh-agent ./cmd/tioh-agent
 ./bin/tioh-agent eval --project ~/Projects/meu-projeto --min-pass 0.8 --min-lift 0.3   # vira gate (sai 1 se não entregar)
 ```
 As perguntas são geradas do próprio briefing (branch, comando de teste, estados, formato de commit, lacunas) e a
-correção é por regex, sem LLM-juiz. Resultado de uma amostra pequena num modelo pequeno: indício, não prova.
+correção é por regex, sem LLM-juiz. Resultado de uma amostra pequena num modelo pequeno: indício, não prova. O que foi medido, com os limites: [docs/RESULTS.md](docs/RESULTS.md).
 
 Para medir o harness **dentro do agente real** (CLAUDE.md, AGENTS.md e `.claude/settings.json` carregados pelo Claude Code,
 com cenários de commit e push num repositório descartável), use `--runner claude --scenarios`; custa tokens da sua conta
 e o projeto instalado vai para a API. Detalhes em [harness/README.md](harness/README.md).
 
+## Licença e contribuições
+[MIT](LICENSE). Projeto pessoal: por enquanto não aceita pull requests ([CONTRIBUTING.md](CONTRIBUTING.md)); forks são bem-vindos.
