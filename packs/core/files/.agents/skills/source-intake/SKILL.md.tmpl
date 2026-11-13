@@ -1,0 +1,100 @@
+---
+name: source-intake
+description: >-
+  Use esta skill ao iniciar implementação de uma capacidade, @@sdd.unit@@ ou serviço de @@project.name@@.
+  Sincroniza o contexto oficial (AGENTS.md, @@docs_platform@@, @@tracker.name@@ @@tracker.key@@, specs SDD) antes de escrever código.
+  Gera um implementation brief rastreável com decisões confirmadas, lacunas (@@sdd.pending_prefix@@-XX), critérios de aceite e limites de escopo.
+  Nunca alucina regras de negócio, padrões técnicos ou valores de SLA; sempre ancora em fonte oficial.
+---
+
+# Skill: SDD Source Intake
+
+## Quando usar
+Sempre que iniciar implementação de um(a) @@sdd.unit@@, capacidade ou serviço de @@project.name@@,
+**antes** de escrever qualquer código.
+
+## Inputs obrigatórios
+Pelo menos um:
+- **ID da fonte oficial** (página/documento + seção);
+- **Item no @@tracker.name@@** (ex.: `@@tracker.key_example@@`);
+- **@@sdd.unit@@/capacidade alvo** (ver `AGENTS.md` §6).
+
+Para **preparar implementação** (não só um brief de leitura), o **repo alvo é obrigatório** — dele depende o
+gate de branch. Se não for informado, pergunte antes desse gate.
+
+## Processo
+1. **Ler `AGENTS.md`** da raiz e do repo alvo — glossário, estados canônicos, pendências, regras.
+2. **Buscar a fonte oficial** seguindo a cadeia de fallback abaixo; **nunca** usar @@if sources.archive_dirs@@@@sources.archive_dirs@@@@else@@cópias históricas@@endif@@ como fonte viva.
+3. **Gate de verificação de referência.**
+4. **Gate de branch de trabalho** (só com repo alvo e gate de referência OK).
+5. **Gate de status no @@tracker.name@@** (só depois do gate de branch).
+6. **Consolidar escopo técnico** — regras, contratos, fluxos, decisões, dependências.
+7. **Listar decisões confirmadas.**
+8. **Marcar pendências** (`@@sdd.pending_prefix@@-XX`, `A DEFINIR`), bloqueios e impacto em estimativa.
+9. **Gerar o implementation brief** com `docs/sdd/templates/implementation-brief.md`.
+
+## Cadeia de fallback para acesso à fonte oficial (somente leitura)
+Falha de ferramenta **não** autoriza implementar por suposição. Tente na ordem e registre no brief qual via funcionou.
+@@if has.atlassian@@
+1. **MCP Atlassian** (`getConfluencePage`, `searchConfluenceUsingCql`, `getJiraIssue`, `searchJiraIssuesUsingJql`)@@if atlassian.cloud_id@@ — cloudId `@@atlassian.cloud_id@@`@@endif@@.
+2. **CLI `acli`**, quando instalado e autenticado:
+   - `acli jira workitem view --key @@tracker.key_example@@ --fields 'summary,status,issuetype,assignee'`
+   - `acli jira workitem search --jql "project = @@atlassian.jira_project@@ AND text ~ \"<termo>\""`
+3. **API REST Atlassian** — `scripts/sdd/atlassian_rest.py` ou `curl` com credencial já presente no ambiente. Nunca imprimir o token.
+@@else@@
+1. **Ferramenta/integração oficial** de documentação e do @@tracker.name@@ disponível na sessão.
+2. **CLI/API** com credenciais já presentes no ambiente. Nunca imprimir o token.
+@@endif@@
+4. **Specs SDD versionadas** (`@@sdd.spec_dir@@/`), **somente** quando rastreáveis à referência informada. Declare no brief que a fonte foi a spec versionada.
+5. **Perguntar ao usuário** — último recurso. Peça o conteúdo/referência alternativa e **pare** até a resposta.
+
+Se todas as vias falharem: **bloqueio rastreável** (referência pedida, vias tentadas, erro, o que desbloqueia) — nunca implementação parcial.
+
+## Gate de verificação de referência
+- **Escopo do item:** o título/descrição do item cobre o(a) @@sdd.unit@@ pedido(a)? Se tratar de outro, **não** implemente.
+- **Existência da seção:** seção citada (ex.: `§3.2`) precisa existir na fonte.
+- **Coerência fonte × @@tracker.name@@:** devem descrever o mesmo escopo. Divergência é bloqueio, não escolha do agente.
+- **Divergência:** reporte `⚠️ REFERÊNCIA INCORRETA` com evidência e candidatos — sem trocar a referência por conta própria.
+
+## Gate de branch de trabalho
+1. **Nome:** `@@vcs.branch_pattern@@`.
+2. `git -C <repo> fetch origin` antes de decidir a base.
+3. **Base:** se `origin/@@vcs.base_branch@@` existir, use-a. Senão, liste as branches remotas e **pergunte** — não escolha `main`/`master` silenciosamente.
+4. **Idempotência:** branch já existente (local ou remota) → só checkout; nunca recriar/forçar.
+5. **Working tree sujo** (`git status --porcelain`) → não trocar de branch; reportar e parar.
+6. Criar/checkout local é automático; **push** só no `review-handoff`, com confirmação humana.
+7. Registrar branch e base no brief (criada agora ou reaproveitada).
+
+## Gate de status no @@tracker.name@@
+1. Ler o status atual do item.
+2. Já em `@@tracker.status_in_progress@@` ou posterior → não mexer; registrar.
+3. Anterior → **perguntar** se deve transicionar para `@@tracker.status_in_progress@@` agora.
+4. **Escopo travado:** só essa transição; qualquer outra está fora desta skill.
+5. Com confirmação, transicionar@@if has.atlassian@@ (MCP → `acli jira workitem transition` → REST)@@endif@@ e registrar status anterior/novo, via e horário.
+6. Recusa ou falha **não** bloqueia o brief — vira nota.
+7. Sem repo alvo (brief só de leitura) este gate não executa.
+
+## Saída — onde salvar o brief
+- **Com repo alvo:** `<repo-alvo>/docs/sdd/briefs/<slug>-<data>.md` — nunca duplicar no workspace raiz.
+- **Sem repo alvo:** `docs/sdd/briefs/<slug>-<data>.md` na raiz.
+
+Conteúdo: referência (fonte, item, branch, base, status), resumo executivo, decisões confirmadas,
+dependências internas, pendências, critérios de aceite, padrões técnicos, próximos passos.
+
+## Regras inegociáveis
+- **Não alucinar:** toda afirmação cita origem (ID + seção).
+- **Proibido inventar regra de formato/validação:** regex, tamanho, dígito verificador, faixa, enum, timeout, SLA, retentativa, paginação. Sem fonte → `⚠️ A DEFINIR` com impacto.
+- **Estados canônicos:** exatamente os de `AGENTS.md` §5.
+@@if phasing.current@@
+- **Faseamento:** distinguir a entrega atual (@@phasing.current@@) das seguintes.
+@@endif@@
+- **Idioma:** @@project.output_language@@ nos artefatos.
+- **Sem segredos.**
+@@if rules.no_agent_attribution@@
+- **Não registrar uso de agentes** em comentários, commits ou documentos.
+@@endif@@
+
+## Próximas skills
+`implementation-loop` (ciclo completo)@@if has.java_spring_hexagonal@@ · `hexagonal-module` (estrutura)@@endif@@ · `test-quality-loop` (testes) · `review-handoff` (revisão final).
+
+Checklist detalhado: `references/source-intake-checklist.md`.

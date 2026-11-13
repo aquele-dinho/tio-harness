@@ -1,0 +1,13 @@
+# Copilot Instructions — @@project.name@@
+
+Este projeto usa **`AGENTS.md`** (na raiz) como **fonte única de verdade**. Leia
+[`../AGENTS.md`](../AGENTS.md) antes de qualquer tarefa: contexto, metodologia SDD, glossário,
+estados canônicos, faseamento, pendências e regras de trabalho.
+
+## Notas específicas do GitHub Copilot
+- **Prompts (slash commands):** `/sdd-specify`, `/sdd-plan`, `/sdd-tasks`, `/sdd-review` em `.github/prompts/`,
+  cada um referenciando o prompt canônico em `docs/sdd/prompts/`.
+- Convenções por caminho para specs: `.github/instructions/sdd.instructions.md` (`applyTo: docs/sdd/**`).
+- **Skills:** `.agents/skills/` (descobertas nativamente pelo VS Code).
+
+Demais regras estão em `AGENTS.md` — não repetidas aqui para evitar divergência.

@@ -1,0 +1,48 @@
+# Review Checklist — @@project.name@@
+
+## Fonte e escopo
+- Há fonte oficial e/ou item `@@tracker.key@@` associado, e ele corresponde de fato ao que foi implementado?
+- O escopo implementado bate com a spec?
+- Alguma regra de formato/validação (regex, tamanho, faixa, enum, timeout, SLA, retentativa) entrou sem fonte?
+@@if phasing.current@@
+- O que é da entrega atual (@@phasing.current@@) está separado das entregas seguintes?
+@@endif@@
+- Pendências `@@sdd.pending_prefix@@-XX`/`A DEFINIR` foram preservadas sem suposição silenciosa?
+
+## Arquitetura
+@@if architecture.style@@
+- Segue @@architecture.style@@?
+@@endif@@
+@@if has.java_spring_hexagonal@@
+- Segue `@@stack.hexagonal.port_dir@@` + `adapter/*`; `@@stack.hexagonal.business_dir@@` não importa `adapter`?
+- Entidades de persistência só em `adapter/repository`; regra em `Xxx@@stack.hexagonal.usecase_suffix@@`?
+- Nenhum pacote @@stack.hexagonal.forbidden_dirs@@ por capacidade?
+@@endif@@
+@@for p in architecture.principles@@
+- @@p@@?
+@@endfor@@
+
+## Domínio
+- Estados canônicos usados sem renomear?
+@@if domain.correlation_key@@
+- `@@domain.correlation_key@@` preservado como chave de correlação?
+@@endif@@
+- Idempotência, retry, DLQ, timeout e observabilidade considerados quando aplicável?
+@@for i in domain.invariants@@
+- @@i@@
+@@endfor@@
+
+## Segurança e operação
+- Nenhum segredo/env value exposto; configuração sensível por env/secret manager?
+- Logs com correlação e sem PII/sigilo?
+@@for s in sdd.security@@
+- @@s@@
+@@endfor@@
+@@for o in sdd.observability@@
+- @@o@@
+@@endfor@@
+
+## Testes
+- Unitários cobrem regra de negócio; funcionais cobrem entrada/saída quando aplicável?
+- Comandos no-watch executados, com resultado real?
+- Falhas remanescentes documentadas com causa?

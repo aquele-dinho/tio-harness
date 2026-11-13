@@ -1,0 +1,20 @@
+# CLAUDE.md — @@project.name@@
+
+Este projeto usa **`AGENTS.md`** (na raiz) como **fonte única de verdade**.
+
+## Fonte de verdade
+@AGENTS.md
+
+## Notas específicas do Claude Code
+- **Comandos SDD:** `/sdd:specify`, `/sdd:plan`, `/sdd:tasks`, `/sdd:review` (`.claude/commands/sdd/`),
+  cada um referenciando o prompt canônico em `docs/sdd/prompts/`.
+- **Skills:** fonte canônica em `.agents/skills/`; `.claude/skills/` é espelho gerado — não editar à mão.
+@@if has.parallel_lanes@@
+- **Subagente:** `lane-executor` (`.claude/agents/`) implementa um item em worktree isolada, sem push nem escrita no @@tracker.name@@.
+@@endif@@
+@@if has.atlassian@@
+- **MCP Atlassian:** `.mcp.json` registra o server `atlassian` (OAuth do usuário via `/mcp` → *Authenticate*).
+  Protocolo: `docs/sdd/CONFLUENCE-SYNC.md`.
+@@endif@@
+
+Demais regras (idioma, não alucinar, artefatos, git) estão em `AGENTS.md` — não repetidas aqui.

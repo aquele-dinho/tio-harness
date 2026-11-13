@@ -1,0 +1,223 @@
+# Briefing de referência FICTÍCIO — "Gestor de Pedidos".
+# Todos os nomes, IDs, chaves, sites e valores abaixo são inventados; nenhum corresponde a um
+# sistema real. Serve de exemplo completo (todos os blocos e packs) e de teste de regressão:
+#   python3 bin/tioh.py install examples/gestor-pedidos.briefing.toml /tmp/tioh-gestor --dry-run
+
+[project]
+name = "Gestor de Pedidos"
+slug = "gestor-pedidos"
+description = "Serviço assíncrono que recebe pedidos de lojas virtuais, reserva estoque, cobra o cliente e acompanha o ciclo de vida do pedido até a entrega."
+organization = "Exemplo S.A."
+anchor_ticket = "EXM-100"
+repo_kind = "especificação SDD + harness de implementação (código em repo/<serviço>)"
+output_language = "pt-BR"
+chat_language = "inglês"
+objectives = [
+  "Decompor cada módulo e regra de negócio em unidades de trabalho estimáveis.",
+  "Viabilizar planejamento com granularidade e estimativa de prazo.",
+  "Gerar itens no Jira com correspondência 1:1 aos itens de trabalho da spec.",
+]
+
+[sources]
+archive_dirs = ["docs/.archive"]
+precedence = [
+  "Confluence oficial vence para negócio/arquitetura publicada; Jira vence para status de entrega; Git vence apenas para WIP SDD não publicado.",
+  "A decisão EXM-18 (monolito modular) prevalece sobre páginas que descrevem microsserviços, até o ADR EXM-59.",
+]
+
+[sources.primary]
+title = "DRN — Gestor de Pedidos"
+id = "100001"
+version_note = "A DRN muda com frequência — reler a versão viva antes de citar."
+
+[[sources.documents]]
+title = "Diretrizes de Engenharia"
+id = "100002"
+role = "padrões técnicos obrigatórios (EDA, Outbox, Circuit Breaker, OTel, segurança)"
+note = "topologia de microsserviços superada pelo monolito modular"
+
+[[sources.documents]]
+title = "Contrato do Gateway de Pagamento"
+id = "100003"
+role = "contratos de integração com o provedor de pagamento"
+
+[[sources.documents]]
+title = "LLD consolidado"
+id = "100004"
+role = "validação arquitetural autocontida (Gestor, Gateway, Estoque)"
+
+[architecture]
+style = "monolito modular hexagonal em Kubernetes (um bounded context, módulos só se comunicam por portas internas)"
+source = "Documento 'Arquitetura Gestor de Pedidos' v1.0 + decisão EXM-18"
+principles = [
+  "EDA: tópico para fan-out, fila para trabalho, com DLQ e envelope obrigatório",
+  "Outbox, inbox/idempotência, Retry com backoff+jitter, Circuit Breaker/Bulkhead",
+  "PostgreSQL primário (autoritativo) + réplica read-only, com roteamento explícito",
+  "Cache local + distribuído, nunca autoritativo",
+  "Observabilidade OpenTelemetry",
+  "Segurança OAuth 2.0/OIDC, TLS, cofre de segredos",
+  "APIs RESTful em camelCase, versionamento /api/v1, OpenAPI versionada",
+]
+containers = ["BFF", "API de Gestão", "Processador de Pedidos", "Consumidor de Estoque", "Consumidor de Pagamentos", "Adaptador de Notificação"]
+adr_patterns = ["CQRS", "Saga Orchestration", "Outbox", "Idempotência", "Circuit Breaker + Bulkhead", "Retry com backoff + jitter"]
+authority = "Arquiteta de soluções do time (decide), com revisão do comitê de arquitetura"
+proposals_dir = "docs/sdd/arquitetura"
+
+[[architecture.directives]]
+title = "Direcionadores e Princípios de Arquitetura"
+id = "100005"
+scope = "corporativo"
+topics = ["mensageria", "observabilidade", "segurança"]
+
+[[architecture.directives]]
+title = "Padrões da Plataforma de Pagamentos"
+id = "100006"
+scope = "plataforma/domínio"
+topics = ["integração com provedores", "idempotência"]
+
+[stack]
+language = "Java 21"
+framework = "Spring Boot 4"
+build_tool = "Maven"
+base_package = "com.exemplo.pedidos"
+test_cmd = "mvn -B clean test"
+verify_cmd = "mvn -B clean verify"
+setup_cmds = []
+unit_test_dir = "src/test/java/unit"
+functional_test_dir = "src/test/java/funcional"
+standards = ["Injeção por construtor, @RestControllerAdvice, configuração em application.yml"]
+
+[stack.hexagonal]
+business_dir = "business"
+port_dir = "business/port"
+adapter_dirs = ["controller", "events", "repository", "<integracao>"]
+usecase_suffix = "Business"
+forbidden_dirs = ["api", "application", "domain", "infrastructure"]
+
+[[repos]]
+path = "repo/svc-pedidos-gestor"
+role = "monolito modular (pacotes platform, gestao, processamento, pagamento, notificacao, consulta); branch main."
+
+[domain]
+correlation_key = "pedidoId"
+invariants = [
+  "O Gestor nunca integra o provedor de pagamento diretamente: o Gateway é a fronteira.",
+  "Nenhum dado de cartão é armazenado; só a referência lógica do token.",
+  "Pedidos com origem = MARKETPLACE nunca têm o estoque reservado pelo Gestor (risco de reserva em duplicidade).",
+]
+
+[[domain.glossary]]
+term = "Loja"
+definition = "sistema de origem da venda; dono da jornada comercial."
+
+[[domain.glossary]]
+term = "Gateway de Pagamento"
+definition = "hub de integração com provedores de pagamento."
+
+[[domain.glossary]]
+term = "Notificador"
+definition = "envio de e-mail/SMS, acionado via fila. Não confundir com o canal de push do app."
+
+[[domain.state_machines]]
+entity = "Pedido"
+states = ["CRIADO", "ESTOQUE_RESERVADO", "PAGO", "EM_SEPARACAO", "ENVIADO", "ENTREGUE", "CANCELADO", "ERRO"]
+
+[[domain.state_machines]]
+entity = "Pagamento"
+states = ["PENDENTE", "AUTORIZADO", "RECUSADO", "RETENTATIVA", "CAPTURADO", "ESTORNADO", "ERRO"]
+note = "RETENTATIVA ainda não está na DRN — decidida nos testes de mesa (EXM-28)."
+
+[phasing]
+current = "MVP — Cartão de Crédito, com fallback em PIX"
+future = "Boleto, carteira digital, split de pagamento"
+notes = ["Troca de meio de pagamento depois da autorização depende de suporte do provedor."]
+
+[sdd]
+unit = "módulo"
+spec_dir = "docs/sdd/modulos"
+pending_prefix = "P"
+api_guidelines = ["RESTful, campos camelCase, versionamento /api/v1, OAuth 2.0 com validação de escopos, HTTPS/TLS."]
+security = ["Nenhum dado de cartão armazenado; segredos em cofre; auditoria de comandos administrativos."]
+observability = ["Logs JSON com traceId, pedidoId, meio, evento e timestamp; tracing distribuído; métricas técnicas e de negócio."]
+resilience = ["DLQ definida; timeout por meio (Cartão 2h, PIX 24h); throttle por provedor; reconciliação de pagamentos PENDENTE."]
+test_strategy = ["unitários (regras de domínio)", "integração (Gateway, mensageria, persistência)", "contratos (payloads assíncronos)", "carga (picos de campanha)", "resiliência (falha de provedor, timeout, duplicidade)"]
+review_extra = ["O backoffice separa ações sobre o pedido das ações sobre o pagamento?"]
+
+[[sdd.modules]]
+id = "01"
+slug = "catalogo-cadastro"
+name = "Catálogo e Cadastro"
+phase = "MVP"
+summary = "regras de preço, itens do pedido, estrutura do carrinho"
+
+[[sdd.modules]]
+id = "02"
+slug = "pedido-ciclo-vida"
+name = "Pedido e Ciclo de Vida"
+phase = "MVP"
+summary = "criação, transições de estado, reserva de estoque"
+
+[[sdd.modules]]
+id = "03"
+slug = "cobranca"
+name = "Cobrança"
+phase = "MVP"
+summary = "autorização, captura, retentativas, idempotência"
+
+[[sdd.pending]]
+id = "P-02"
+text = "janelas de manutenção do provedor de pagamento."
+status = "em averiguação"
+
+[[sdd.pending]]
+id = "P-08"
+text = "validação dos SLAs (99,5% de disponibilidade; 95% das autorizações em até 3 s)."
+status = "aberto"
+
+[vcs]
+host = "github"
+base_branch = "main"
+branch_pattern = "feature/<EXM-KEY>-<tNN>-<slug-curto>"
+commit_convention = "Conventional Commits em pt-BR (feat(EXM-xxx): …)"
+
+[atlassian]
+site = "https://exemplo.atlassian.net"
+cloud_id = "00000000-0000-0000-0000-000000000000"
+space = "EXM"
+root_folder_id = "100010"
+jira_project = "EXM"
+status_in_progress = "Em Desenvolvimento"
+labels = ["gestor-pedidos", "sdd"]
+story_points_field = "customfield_10001"
+sprint_field = "customfield_10002"
+cancel_status = "Cancelado"
+cancel_fields = { confirmacao = "customfield_10101", motivo = "customfield_10102", justificativa = "customfield_10103", solicitante = "customfield_10104" }
+index_roots = [
+  { id = "100010", type = "folder", label = "Gestor de Pedidos (pasta oficial)" },
+  { id = "100003", type = "page", label = "Contrato do Gateway de Pagamento" },
+]
+spec_pages = {}
+
+[atlassian.mirror]
+enabled = false
+parent = ""
+exclude_extra = []
+labels = []
+
+[meetings]
+transcripts_dir = ""
+notes_dir = "docs/sdd/atas"
+publish = ""
+
+[rules]
+no_agent_attribution = true
+extra = [
+  "Nomenclatura: o sistema se chama Gestor de Pedidos (não 'Gerenciador de Compras').",
+  "No monolito modular, capacidade nova entra como módulo/pacote dentro do gestor; deployable separado só com ADR.",
+]
+
+[agents]
+targets = ["copilot", "claude", "gemini", "warp"]
+
+[packs]
+enabled = ["core", "atlassian", "architecture-advisor", "meeting-intake", "tl-review", "java-spring-hexagonal", "playwright-qa", "parallel-lanes", "md2html"]

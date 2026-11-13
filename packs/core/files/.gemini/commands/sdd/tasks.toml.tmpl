@@ -1,0 +1,10 @@
+description = "SDD tasks — @@project.name@@"
+prompt = """
+Contexto do projeto (fonte única de verdade):
+@{AGENTS.md}
+
+Instruções canônicas da fase `tasks`:
+@{docs/sdd/prompts/tasks.md}
+
+Alvo informado pelo usuário: {{args}}
+"""

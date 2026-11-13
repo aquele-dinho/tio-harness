@@ -1,0 +1,245 @@
+# AGENTS.md — @@project.name@@@@if project.anchor_ticket@@ (@@project.anchor_ticket@@)@@endif@@
+
+> **Fonte única de verdade** para qualquer agente de IA (GitHub Copilot, Claude Code, Gemini CLI,
+> Warp/Oz, Codex). Os arquivos `CLAUDE.md`, `GEMINI.md`, `WARP.md` e
+> `.github/copilot-instructions.md` são apenas ponteiros para este documento.
+> Se algo divergir, **este arquivo prevalece**.
+>
+> Gerado pelo Tio Harness v@@framework.version@@ a partir de `.ai-framework/briefing.toml`.
+> Edite à vontade: a reinstalação não sobrescreve um arquivo alterado no projeto (grava `.tioh-new`
+> ao lado). Mudanças estruturais devem voltar ao briefing.
+
+## 1. O que é este repositório
+@@project.description@@
+
+Este repositório guarda: **@@project.repo_kind@@**.
+@@if project.objectives@@
+
+Objetivos:
+@@for o in project.objectives@@
+@@loop.index@@. @@o@@
+@@endfor@@
+@@endif@@
+
+Idioma:
+- **Conversa com o agente e raciocínio:** @@project.chat_language@@.
+- **Saída final** (docs, specs, artefatos, conteúdo para @@docs_platform@@/@@tracker.name@@, mensagens de
+  commit/@@vcs.mr@@): sempre em **@@project.output_language@@** — termos técnicos consagrados podem ficar em inglês.
+
+## 2. Documentos-fonte
+- **Fonte principal:** @@sources.primary.title@@@@if sources.primary.id@@ — ID `@@sources.primary.id@@`@@endif@@.
+@@if sources.primary.version_note@@
+  ⚠️ @@sources.primary.version_note@@
+@@endif@@
+@@for d in sources.documents@@
+- **@@d.title@@**@@if d.id@@ — ID `@@d.id@@`@@endif@@@@if d.role@@ — @@d.role@@@@endif@@.@@if d.note@@ ⚠️ @@d.note@@@@endif@@
+@@endfor@@
+@@if has.atlassian@@
+- **Documentação oficial = Confluence** (space `@@atlassian.space@@`@@if atlassian.root_folder_id@@, pasta raiz `@@atlassian.root_folder_id@@`@@endif@@).
+  Execução acompanhada no Jira, projeto **@@atlassian.jira_project@@**. Protocolo de sincronia:
+  [`docs/sdd/CONFLUENCE-SYNC.md`](./docs/sdd/CONFLUENCE-SYNC.md).
+@@endif@@
+@@if sources.archive_dirs@@
+- **Somente leitura, nunca fonte viva:** @@sources.archive_dirs@@ (backup histórico).
+@@endif@@
+
+**Regra:** toda afirmação da spec deve ser ancorável na fonte principal ou em documento-fonte
+oficial acima. Não inventar decisões não validadas — ver §8.
+@@if sources.precedence@@
+
+**Precedência em caso de conflito:**
+@@for p in sources.precedence@@
+- @@p@@
+@@endfor@@
+@@endif@@
+
+## 3. Metodologia SDD e fluxo de trabalho
+O trabalho segue o fluxo **`specify → plan → tasks → review`**. Cada fase tem um prompt canônico em
+`docs/sdd/prompts/` e um comando equivalente em cada agente (§9):
+
+1. **specify** — para um(a) @@sdd.unit@@ (§6), gerar a spec com `docs/sdd/TEMPLATE-spec.md`, salvando em
+   `@@sdd.spec_dir@@/<slug>.md`.
+2. **plan** — consolidar decisões arquiteturais (ADR), contratos de API, modelos de dados e fluxos.
+3. **tasks** — decompor em itens de trabalho 1:1 com o @@tracker.name@@, estimáveis isoladamente.
+4. **review** — auditar cobertura contra a fonte principal e critérios de aceite; listar gaps e
+   pendências (@@sdd.pending_prefix@@-XX) que impactam estimativa.
+
+A implementação usa o harness de skills (§9).
+
+## 4. Glossário
+@@if not domain.glossary@@
+> ⚠️ A DEFINIR: glossário de atores e sistemas ainda não registrado no briefing.
+@@endif@@
+@@for g in domain.glossary@@
+- **@@g.term@@:** @@g.definition@@
+@@endfor@@
+@@if domain.correlation_key@@
+- **`@@domain.correlation_key@@`:** chave de correlação fim a fim. Preservar em logs, eventos e integrações.
+@@endif@@
+
+## 5. Estados canônicos (não renomear)
+@@if domain.state_machines@@
+@@for s in domain.state_machines@@
+**@@s.entity@@:** @@s.states@@.@@if s.note@@
+> ⚠️ @@s.note@@@@endif@@
+
+@@endfor@@
+@@else@@
+> ⚠️ A DEFINIR: estados canônicos ainda não registrados no briefing.
+@@endif@@
+
+## 6. Unidades da especificação (@@sdd.unit@@)
+@@if sdd.modules@@
+| ID | @@sdd.unit@@ | Fase | Resumo |
+|---|---|---|---|
+@@for m in sdd.modules@@
+| @@m.id@@ | **@@m.name@@** (`@@m.slug@@`) | @@m.phase@@ | @@if m.summary@@@@m.summary@@@@endif@@ |
+@@endfor@@
+@@else@@
+> ⚠️ A DEFINIR: decomposição em @@sdd.unit@@ ainda não feita — rode `specify` por unidade quando definida.
+@@endif@@
+
+## 7. Arquitetura, faseamento e restrições
+@@if architecture.style@@
+- **Arquitetura:** @@architecture.style@@@@if architecture.source@@ (fonte: @@architecture.source@@)@@endif@@.
+@@endif@@
+@@if architecture.containers@@
+- **Componentes:** @@architecture.containers@@.
+@@endif@@
+@@if architecture.directives@@
+- **Diretrizes de arquitetura** (por camada; ler a versão viva; não copiar para o repositório):
+@@for d in architecture.directives@@
+  - @@d.title@@@@if d.id@@ — ID `@@d.id@@`@@endif@@@@if d.scope@@ — @@d.scope@@@@endif@@@@if d.topics@@ — temas: @@d.topics@@@@endif@@
+@@endfor@@
+@@endif@@
+@@if architecture.authority@@
+- **Decisões de arquitetura:** @@architecture.authority@@. Sugestões do agente são apoio, nunca decisão.
+@@endif@@
+@@if phasing.current@@
+- **Entrega atual:** @@phasing.current@@.
+@@endif@@
+@@if phasing.future@@
+- **Entregas seguintes:** @@phasing.future@@. Não implementar regra futura dentro da fatia atual sem decisão oficial.
+@@endif@@
+@@for n in phasing.notes@@
+- @@n@@
+@@endfor@@
+@@for r in repos@@
+@@if r.path@@
+- **Repo `@@r.path@@`@@if r.reference@@ (referência — somente leitura, não é alvo de implementação)@@endif@@:** @@r.role@@
+@@endif@@
+@@endfor@@
+
+## 8. Pendências em aberto (impactam estimativa)
+Mapear explicitamente nas specs; item bloqueado é marcado com
+`> ⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx): ...` e vinculado ao item de trabalho correspondente. Sem
+pendência catalogada, usar `> ⚠️ A DEFINIR: ...`.
+@@for p in sdd.pending@@
+- **@@p.id@@** — @@p.text@@@@if p.status@@ _(@@p.status@@)_@@endif@@
+@@endfor@@
+
+## 9. Comandos SDD por agente (mesmo prompt canônico)
+Os corpos canônicos vivem em `docs/sdd/prompts/`. Cada agente referencia esses arquivos:
+@@if agents.copilot@@
+- **GitHub Copilot:** `/sdd-specify`, `/sdd-plan`, `/sdd-tasks`, `/sdd-review` (`.github/prompts/`).
+@@endif@@
+@@if agents.claude@@
+- **Claude Code:** `/sdd:specify`, `/sdd:plan`, `/sdd:tasks`, `/sdd:review` (`.claude/commands/sdd/`).
+@@endif@@
+@@if agents.gemini@@
+- **Gemini CLI:** `/sdd:specify`, `/sdd:plan`, `/sdd:tasks`, `/sdd:review` (`.gemini/commands/sdd/`).
+@@endif@@
+@@if agents.warp@@
+- **Warp/Oz:** siga `docs/sdd/prompts/<fase>.md` diretamente (ou salve como Workflow).
+@@endif@@
+@@if agents.codex@@
+- **Codex:** siga `docs/sdd/prompts/<fase>.md` diretamente.
+@@endif@@
+
+### Harness de implementação
+Skills canônicas em `.agents/skills/`@@if agents.claude@@ (espelhadas em `.claude/skills/` para o Claude Code — não editar o espelho)@@endif@@:
+- `source-intake` — sincroniza o contexto oficial antes de codar; gates de referência, branch e status.
+- `implementation-loop` — ciclo Observe → Specify → Plan → Act → Verify → Reflect → Repeat.
+@@if has.java_spring_hexagonal@@
+- `hexagonal-module` — aplica o padrão `@@stack.hexagonal.port_dir@@` + `adapter/*`.
+@@endif@@
+- `test-quality-loop` — cria/ajusta testes e valida em modo no-watch.
+- `review-handoff` — audita conformidade e, com confirmação humana, faz commit + push + abre @@vcs.mr@@.
+@@if has.tl_review@@
+- `tl-review` — revisão de Tech Lead sobre um @@vcs.mr@@ existente; com aprovação explícita, merge e baixa no @@tracker.name@@.
+@@endif@@
+@@if has.architecture_advisor@@
+- `architecture-advisor` — sugere alternativas de arquitetura avaliadas contra as diretrizes, como apoio aos arquitetos (status PROPOSTA até decisão registrada).
+@@endif@@
+@@if has.meeting_intake@@
+- `meeting-intake` — processa transcrições e atas de reunião: cruza com as perguntas em aberto, separa decisão de indicação, registra a ata e propõe respostas e atualizações (escrita externa com gate humano).
+@@endif@@
+@@if has.playwright_qa@@
+- `qa-playwright-scenario` — mantém cenários Playwright espelhando as rotas HTTP reais.
+@@endif@@
+
+Para repos de implementação aninhados (`repo/<serviço>`), sincronize as skills com
+`scripts/sdd/install-agent-skills.sh repo/<serviço>` (`--check` só compara). Drift do harness contra o
+framework: `python3 <framework>/bin/tioh.py check .`.
+
+## 10. Regras de trabalho para agentes
+- **Não alucinar:** só afirme o que está nas fontes oficiais (§2). Onde faltar decisão, marque
+  `⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx)` ou `⚠️ A DEFINIR` — nunca preencha com suposição silenciosa.
+- **Proibido inventar regra de formato ou validação:** regex, tamanho de campo, dígito verificador, faixa
+  numérica, enum, timeout, SLA, política de retentativa e limite de paginação só entram com fonte.
+@@if architecture.principles@@
+- **Pressupostos técnicos consolidados** (desvio exige ADR):
+@@for p in architecture.principles@@
+  - @@p@@
+@@endfor@@
+@@endif@@
+@@if domain.invariants@@
+- **Invariantes de domínio** (conferidas em toda revisão):
+@@for i in domain.invariants@@
+  - @@i@@
+@@endfor@@
+@@endif@@
+- **Granularidade:** todo item de trabalho estimável isoladamente e atribuído ao componente afetado.
+- **Rastreabilidade:** cada seção de spec e cada classe relevante citam a origem (ID + §) e as pendências relacionadas.
+- **Artefatos:** specs em `@@sdd.spec_dir@@/`; briefs em `docs/sdd/briefs/`.@@if sources.archive_dirs@@ Não editar @@sources.archive_dirs@@.@@endif@@
+@@if has.atlassian@@
+- **Sync Atlassian:** antes de specify/plan/tasks/implementar, ler a fonte oficial no Confluence/Jira.
+@@if atlassian.mirror.enabled@@
+- **Espelhamento:** todo documento de autoria do projeto (@@atlassian.mirror.include@@, exceto os arquivos do harness)
+  tem página espelho no @@docs_platform@@, registrada em `@@atlassian.mirror.map@@`, e fica em sincronia com ela:
+  - antes de editar um documento espelhado, rodar `python3 scripts/sdd/sync-mirror.py` (status) e trazer qualquer
+    edição remota para o arquivo local (`sync-mirror.py diff <arquivo>`);
+  - depois de editar e commitar, publicar no mesmo trabalho (`sync-mirror.py push <arquivo> --apply`) e commitar o
+    mapa atualizado;
+  - documento novo ganha página espelho com `sync-mirror.py push --create <arquivo> --apply`@@if atlassian.mirror.parent@@ (padrão: sob `@@atlassian.mirror.parent@@`)@@endif@@.
+  O espelho vai do repositório para o @@docs_platform@@: páginas de terceiros não são copiadas para o Git.
+- **Gate de escrita:** atualizar uma página espelho já registrada, a partir do arquivo local, tem **autorização
+  permanente**. Criar página, sobrescrever página editada remotamente e escrever em qualquer outra página ou issue
+  exigem confirmação humana explícita.
+@@else@@
+  Escrita em páginas/issues exige gate humano. Não espelhar a wiki no Git.
+@@endif@@
+@@endif@@
+@@if rules.no_agent_attribution@@
+- **Não registrar uso de agentes** em documentos, comentários, mensagens de commit, @@vcs.mr@@ ou @@tracker.name@@.
+  **Exceção de execução (não de conteúdo):** nos fluxos `review-handoff`@@if has.tl_review@@ e `tl-review`@@endif@@ o agente pode
+  executar commit, push, abertura de @@vcs.mr@@@@if has.tl_review@@, merge@@endif@@ e transição de status — sempre precedidos de
+  **confirmação humana explícita** por ação. No `source-intake`, só a transição para
+  `@@tracker.status_in_progress@@`, com a mesma confirmação, nunca regredindo status.
+@@endif@@
+@@for r in rules.extra@@
+- @@r@@
+@@endfor@@
+
+## 11. Convenções operacionais
+- Rodar testes em **modo no-watch** (sem sessões interativas que travam a saída).
+@@if stack.test_cmd@@
+- Teste: `@@stack.test_cmd@@`@@if stack.verify_cmd@@ · validação completa: `@@stack.verify_cmd@@`@@endif@@.
+@@endif@@
+- **Nunca** expor segredos/variáveis de ambiente em saída ou comandos.
+- Comandos paginados: anexar `| cat` (ex.: `git --no-pager`, `@@vcs.view@@`).
+- Git: commits só quando solicitado. Branch: `@@vcs.branch_pattern@@`, base `@@vcs.base_branch@@` (se não existir, perguntar).
+  Mensagens: @@vcs.commit_convention@@.@@if rules.no_agent_attribution@@ **Sem** linha `Co-Authored-By` de agente.@@endif@@
+
+## 12. Contexto vivo do projeto
+<!-- Decisões datadas, mudanças de escopo e avisos que o time acumula. Mantido à mão. -->

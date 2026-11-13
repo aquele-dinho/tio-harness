@@ -1,0 +1,67 @@
+# [@@sdd.unit@@] <Nome>
+
+> **Fase SDD:** ☐ specify ☐ plan ☐ tasks ☐ review
+> **Faseamento:** @@if phasing.current@@@@phasing.current@@ / seguinte@@else@@<entrega>@@endif@@
+> **Fontes:** @@sources.primary.title@@ §… · <outros IDs>
+
+## 1. Objetivo
+Descreva, em 2–4 linhas, a responsabilidade dentro de @@project.name@@.
+
+## 2. Escopo
+- **Na entrega atual:** …
+- **Entregas seguintes:** …
+- **Fora de escopo:** …
+
+## 3. Regras de negócio (ancoradas na fonte)
+Liste cada regra com sua origem. Ex.: "<regra> (@@sources.primary.title@@ §x.y)".
+Marque lacunas: `> ⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx): …` ou `> ⚠️ A DEFINIR: …`.
+
+## 4. Contratos de API
+Método, path, request/response, códigos de erro. Marque `⚠️ PROPOSTA` quando não confirmado.
+@@if sdd.api_guidelines@@
+
+> 🛡️ **Diretrizes obrigatórias:**@@for g in sdd.api_guidelines@@ @@g@@ ·@@endfor@@
+@@endif@@
+
+```
+<método> <path>
+Request: …
+Response: …
+Erros: …
+```
+
+## 5. Modelos de dados e estados
+Entidades, campos-chave@@if domain.correlation_key@@ (`@@domain.correlation_key@@`, …)@@endif@@ e máquina de estados (estados canônicos de `AGENTS.md` §5).
+```mermaid
+stateDiagram-v2
+    [*] --> ESTADO_INICIAL
+```
+
+## 6. Fluxos de sequência
+```mermaid
+sequenceDiagram
+    participant Origem
+    participant Sistema
+```
+
+## 7. Decisões arquiteturais (ADR)
+Para cada decisão: contexto, opções, trade-offs, recomendação e status (`Proposta` / `Aceita` / `Bloqueada por @@sdd.pending_prefix@@-xx`).
+@@if architecture.adr_patterns@@
+
+> 🏛️ **Padrões consolidados a avaliar:** @@architecture.adr_patterns@@. Desvios exigem justificativa explícita.
+@@endif@@
+
+## 8. Dependências e pontos em aberto
+- **Externas:** …
+- **Pendências (@@sdd.pending_prefix@@-XX / A DEFINIR):** liste as que impactam e o que travam.
+
+## 9. Itens de trabalho (para o @@tracker.name@@)
+Tarefas mínimas e estimáveis. Uma linha por tarefa.
+- **[T-xx] <título>** — componente: … · estimativa: … · dependências: … · fase: … · critérios de aceite: …
+@@if sdd.test_strategy@@
+
+> 🧪 **Estratégia de testes:**@@for t in sdd.test_strategy@@ @@t@@ ·@@endfor@@ Inclua ao menos uma tarefa de teste por tipo aplicável.
+@@endif@@
+
+## 10. Critérios de aceite / estimabilidade
+Confirme que há detalhe suficiente para estimar e que os itens de trabalho cobrem a spec 1:1.

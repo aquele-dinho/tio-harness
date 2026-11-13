@@ -1,0 +1,18 @@
+# Cenários de teste de referência — @@project.name@@
+
+Use como checklist mínimo ao mapear testes de uma fatia. Só inclua o que a fonte oficial sustenta.
+
+| Categoria | Pergunta | Exemplo de asserção |
+|---|---|---|
+| Caminho feliz | O fluxo principal produz o estado/saída esperada? | estado final canônico correto |
+| Estado inválido | Transições proibidas são rejeitadas? | erro de domínio, estado inalterado |
+| Idempotência | Reenvio do mesmo comando/evento não duplica efeito?@@if domain.correlation_key@@ (chave `@@domain.correlation_key@@`)@@endif@@ | um único efeito persistido |
+| Erros de parceiro | Falha reversível vs. irreversível é tratada conforme a fonte? | retry agendado / encerramento |
+| Timeout/retry | Política vem da fonte (nunca inventada)? | `⚠️ A DEFINIR` se ausente |
+| Contrato | Payload de entrada/saída respeita o contrato publicado? | serialização, campos obrigatórios |
+| Segurança | Endpoints exigem autenticação/escopo? Nada sensível em log? | 401/403; log sem PII |
+
+Estados canônicos (de `AGENTS.md` §5):
+@@for s in domain.state_machines@@
+- **@@s.entity@@:** @@s.states@@
+@@endfor@@

@@ -1,0 +1,12 @@
+name = "core"
+description = "AGENTS.md, ponteiros por agente, fluxo SDD (specify/plan/tasks/review), templates e skills de implementação"
+requires = []
+
+# Prefixo de caminho → condição. O arquivo só é instalado se a condição for verdadeira.
+[when]
+"CLAUDE.md" = "agents.claude"
+".claude/" = "agents.claude"
+"GEMINI.md" = "agents.gemini"
+".gemini/" = "agents.gemini"
+"WARP.md" = "agents.warp"
+".github/" = "agents.copilot"

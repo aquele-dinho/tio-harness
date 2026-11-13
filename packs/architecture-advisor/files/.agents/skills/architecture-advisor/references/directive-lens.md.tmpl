@@ -1,0 +1,63 @@
+# Lente de avaliação — alternativas × diretrizes
+
+Guia para o passo 4 da skill `architecture-advisor`. Os **critérios vêm das fontes**, não deste arquivo: aqui está
+só o método.
+
+## 1. Montar os critérios a partir da fonte viva
+1. Selecionar as diretrizes cujos **temas** cobrem a questão e lê-las na versão viva, por camada:
+   - **corporativo** — direcionadores e princípios gerais; se definirem **dimensões de avaliação** próprias
+     (ex.: negócio, técnico, financeiro, riscos), elas viram o eixo principal da comparação;
+   - **plataforma/domínio** — padrões já adotados (mensageria, observabilidade, idempotência, sizing, integração);
+     indicam o que **já existe** e o caminho de menor atrito;
+   - **projeto** — pressupostos técnicos consolidados (`AGENTS.md` §10; desvio exige ADR) e invariantes de domínio
+     (**eliminatórias**).
+@@if architecture.adr_patterns@@
+2. Padrões a avaliar em toda ADR deste projeto: @@architecture.adr_patterns@@.
+@@endif@@
+3. RNFs e critérios de aceite da fonte principal ligados à questão.
+4. Item de diretriz que não se aplica: registrar "não aplicável" com uma linha de motivo — não omitir em silêncio.
+5. Duas camadas em conflito (ex.: padrão de plataforma em nuvem × restrição do projeto por infraestrutura local):
+   registrar as duas citações e levar como pergunta — a skill não arbitra.
+
+## 2. Tipos de evidência
+| Tipo | Como citar |
+|---|---|
+| `fonte` | título/ID + § ou item, versão/data lida |
+| `código` | repositório, branch, arquivo/classe, data da leitura (produção × integrado-não-liberado, se aplicável) |
+| `inferência` | raciocínio em uma linha, a partir de quais fatos |
+| `desconhecido` | vira pergunta para a arquitetura |
+
+## 3. Matriz de aderência
+Uma linha por critério; uma coluna por alternativa. Cada célula:
+
+| Marca | Significado |
+|---|---|
+| `aderente` | atende ao critério, com evidência |
+| `parcial` | atende com ressalva ou condição (descrever) |
+| `conflita` | contraria o critério (descrever o impacto) |
+| `?` | sem informação suficiente |
+
+Sem nota numérica nem pesos inventados; se a arquitetura usar pesos oficiais, citar a fonte.
+
+## 4. Cenários de atributo de qualidade (QAS)
+Para cada RNF relevante, um cenário por alternativa quando o comportamento diferir:
+
+| Atributo | Estímulo | Resposta | Medida | Mecanismo |
+|---|---|---|---|---|
+
+A **medida** só leva número com fonte; sem fonte, `⚠️ A DEFINIR` e a pergunta correspondente.
+
+## 5. Dimensões que costumam decidir
+- **Reuso:** o que já existe na plataforma/no código e o que precisaria ser construído ou provisionado.
+- **Reversibilidade:** custo de trocar depois; o que fica acoplado (contrato, dado, operação).
+- **Operação:** quem provisiona, monitora e sustenta; é padrão da casa ou novidade.
+- **Falha:** como falha, isola e se recupera — e se depende do mesmo ponto que a falha que se quer cobrir.
+- **Segurança e dados:** exposição de dados sensíveis, requisitos de SI, trilha de auditoria.
+- **Prazo e dependências:** o que depende de outros times (infra, SI, donos de sistemas) e trava o cronograma.
+- **Custo:** qualitativo, salvo número com fonte.
+
+## 6. Da matriz à sugestão
+- `conflita` em invariante ou pressuposto consolidado → descartada (ou exige ADR explícita, dita como tal).
+- Entre as restantes, sugerir a de menos `conflita`/`?` nos critérios que as diretrizes destacam, dizendo quais `?`
+  poderiam inverter a ordem.
+- Sempre escrever a condição de reavaliação: "se <fato> se confirmar, <Y> passa a ser preferível".

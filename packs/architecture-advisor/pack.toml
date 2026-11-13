@@ -1,0 +1,3 @@
+name = "architecture-advisor"
+description = "Skill architecture-advisor: sugere alternativas de arquitetura de solução, avaliadas contra as diretrizes corporativas, como apoio à decisão dos arquitetos responsáveis"
+requires = []

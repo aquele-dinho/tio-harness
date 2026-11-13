@@ -1,0 +1,72 @@
+---
+name: review-handoff
+description: >-
+  Use esta skill para revisar e entregar uma implementação SDD de @@project.name@@.
+  Audita código, testes e documentação contra AGENTS.md, fonte oficial/@@tracker.name@@, arquitetura, estados canônicos, segurança,
+  observabilidade, idempotência, resiliência e critérios de aceite, gerando um handoff objetivo@@if rules.no_agent_attribution@@ sem registrar uso de agentes@@endif@@.
+  Acione antes de @@vcs.mr@@, merge, encerramento de tarefa ou quando o usuário pedir revisão final/conformidade.
+---
+
+# Skill: SDD Review Handoff
+
+## Objetivo
+Revisão final antes de considerar uma fatia pronta e, com confirmação humana, entrega via @@vcs.mr_long@@.
+
+## Checklist
+Aplique `references/review-checklist.md` (fonte/escopo, arquitetura, domínio, segurança/operação, testes).
+
+## Processo
+1. Ler `AGENTS.md` do workspace e do repo alvo.
+2. Revisar o diff local com pager desabilitado (`git --no-pager diff`).
+3. Rodar validações cabíveis em no-watch@@if stack.verify_cmd@@ (`@@stack.verify_cmd@@`)@@endif@@, salvo pedido de revisão só estática.
+4. Corrigir problemas simples e inequívocos, se a tarefa permitir alteração.
+@@if has.playwright_qa@@
+5. Se a fatia introduziu/alterou rota HTTP real, **sugerir** `qa-playwright-scenario` (informativo, nunca bloqueante).
+@@endif@@
+6. **Gate de sincronia do harness** (repos aninhados com cópia própria de `.agents/skills/`):
+   `scripts/sdd/install-agent-skills.sh <repo-alvo> --check`. Com drift, resincronizar e incluir no commit.
+   Sem acesso à fonte canônica: registrar "não aplicável". Nunca bloqueia sozinho.
+7. Reportar bloqueios reais sem inventar decisão.
+8. **Handoff de entrega** — só se **todas** as seções fecharem `OK`. Com pendência bloqueante, **pare** e reporte.
+   1. Mostrar `git diff --stat`, mensagem de commit proposta (@@vcs.commit_convention@@), base do @@vcs.mr@@
+      e rascunho de título/descrição citando o item `@@tracker.key@@`@@if rules.no_agent_attribution@@, sem menção a uso de agente@@endif@@.
+   2. **Pedir confirmação explícita** antes de qualquer ação de VCS.
+   3. Commit local@@if rules.no_agent_attribution@@ (sem `Co-Authored-By`/menção a agente)@@endif@@.
+   4. `git push -u origin <branch>` — branch resolvida no `source-intake`.
+   5. `@@vcs.create@@` com base = branch resolvida no intake (ex.: `@@vcs.base_branch@@`).
+   6. Reportar a URL e atualizar o brief com o link.
+@@if has.tl_review@@
+   7. Recomendar `tl-review` como próximo passo.
+@@endif@@
+
+## Saída esperada
+```text
+Resumo
+- <o que foi revisado/concluído>
+
+Arquivos principais
+- <arquivo>: <motivo>
+
+Validação
+- <comando>: <resultado>
+
+Conformidade
+- Fonte/escopo: OK|pendente
+- Arquitetura: OK|pendente
+- Domínio: OK|pendente
+- Segurança/operação: OK|pendente
+- Testes: OK|pendente
+
+Harness
+- <em dia | resincronizado (<skills>) | não aplicável>
+
+Pendências
+- <@@sdd.pending_prefix@@-XX ou A DEFINIR, impacto>
+
+Próximos passos
+- <ação recomendada>
+
+Handoff de entrega
+- @@vcs.mr@@: <URL ou "não executado — motivo">
+- Branch/base: <branch> -> <base>
+```

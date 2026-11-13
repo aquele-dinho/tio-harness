@@ -1,0 +1,64 @@
+---
+name: test-quality-loop
+description: >-
+  Use esta skill para criar, revisar e executar testes de implementação em @@project.name@@.
+  Aplica loop de qualidade SDD@@if stack.language@@ para @@stack.language@@@@endif@@@@if stack.build_tool@@/@@stack.build_tool@@@@endif@@, usa testes no-watch, separa unitário e funcional,
+  valida regras de negócio e adapters, e itera até build/teste passar ou declarar bloqueio rastreável.
+  Acione quando o usuário pedir testes, cobertura, validar implementação, corrigir build quebrado ou preparar handoff.
+---
+
+# Skill: SDD Test Quality Loop
+
+## Objetivo
+Garantir que a implementação esteja coberta por testes úteis e validada com comandos reprodutíveis.
+
+## Inputs
+Repo alvo · fonte oficial e/ou item `@@tracker.key@@` · @@sdd.unit@@/caso de uso · arquivos alterados.
+
+## Estratégia de testes
+- **Unitários:** regras de negócio, invariantes, transições de estado, idempotência, mapeamentos, decisões de retry.
+- **Funcionais:** entrada/saída real (controller, listener, adapter) quando houver.
+- **Integração externa:** simular/mockar sistemas externos sem ambiente controlado.
+@@for t in sdd.test_strategy@@
+- @@t@@
+@@endfor@@
+
+## Localização
+**Confirme o padrão real inspecionando o diretório de testes do repo alvo antes de criar arquivo** — não assuma.
+@@if stack.unit_test_dir@@
+- Unitários: `@@stack.unit_test_dir@@/**`
+@@endif@@
+@@if stack.functional_test_dir@@
+- Funcionais: `@@stack.functional_test_dir@@/**`
+@@endif@@
+
+## Comandos (no-watch)
+@@for c in stack.setup_cmds@@
+- Pré-requisito: `@@c@@`
+@@endfor@@
+@@if stack.test_cmd@@
+- `@@stack.test_cmd@@`
+@@endif@@
+@@if stack.verify_cmd@@
+- `@@stack.verify_cmd@@`
+@@endif@@
+
+## Loop
+1. Ler critérios de aceite e regras de negócio.
+2. Mapear cenários: caminho feliz · erro reversível/irreversível · idempotência · estado inválido · timeout/retry · contrato/serialização.
+3. Criar ou ajustar testes.
+4. Rodar validação no-watch.
+5. Se falhar: ler o erro completo, corrigir a menor causa real, repetir.
+6. Bloqueio por ambiente, dependência ou decisão ausente → reportar com fonte e impacto.
+
+## Regras
+- Não enfraquecer teste para fazê-lo passar; não remover cobertura sem justificativa técnica.
+- Não mascarar exceções nem alterar regra de negócio sem fonte oficial.
+- Não expor valores de env/secrets.
+- Não iniciar servidores por conta própria sem verificar instâncias/logs existentes.
+
+## Handoff
+Comandos executados e resultado · testes criados/alterados · falhas remanescentes · critérios de aceite cobertos.
+Use `docs/sdd/templates/validation-report.md` quando o relatório precisar ser versionado.
+
+Cenários de referência: `references/test-scenarios.md`.

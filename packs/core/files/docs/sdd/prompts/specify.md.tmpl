@@ -1,0 +1,30 @@
+# Prompt canônico — SDD `specify`
+
+Você é um engenheiro de software sênior no domínio de @@project.name@@. Sua tarefa é **elaborar (ou
+atualizar) a especificação técnica SDD de UM(A) @@sdd.unit@@**.
+
+## Entrada
+- **Alvo:** {{args}} (ver `AGENTS.md` §6). Se não informado, pergunte ou liste as opções de `@@sdd.spec_dir@@/`.
+
+## Contexto obrigatório (leia antes de escrever)
+1. `AGENTS.md` — fonte única de verdade (glossário, estados, faseamento, pendências).
+2. **@@sources.primary.title@@**@@if sources.primary.id@@ (ID `@@sources.primary.id@@`)@@endif@@ — leia a versão viva@@if has.atlassian@@ via MCP Atlassian/`acli`/REST@@endif@@; cópias locais podem estar desatualizadas.
+@@for d in sources.documents@@
+3. **@@d.title@@**@@if d.id@@ (ID `@@d.id@@`)@@endif@@@@if d.role@@ — @@d.role@@@@endif@@.
+@@endfor@@
+4. Template: `docs/sdd/TEMPLATE-spec.md`.
+
+## Procedimento
+1. Releia as seções da fonte principal relacionadas ao alvo.
+2. Preencha **todas** as seções do template, na ordem.
+3. Para cada regra, cite a origem (§ ou trecho curto).
+4. Marque lacunas com `> ⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx): ...` ou `> ⚠️ A DEFINIR: ...` e vincule ao item de
+   trabalho afetado. **Não** invente decisões, SLAs, códigos de erro ou contratos.
+@@if phasing.current@@
+5. Distinga claramente a entrega atual (**@@phasing.current@@**) das entregas seguintes@@if phasing.future@@ (@@phasing.future@@)@@endif@@.
+@@endif@@
+6. Use os **estados canônicos** exatos de `AGENTS.md` §5 e diagramas Mermaid quando útil.
+
+## Saída
+- Grave/atualize em `@@sdd.spec_dir@@/<slug>.md`.
+- Ao final, liste em 3–5 linhas: cobertura alcançada, pendências encontradas e o que falta para `plan`.

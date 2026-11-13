@@ -1,0 +1,43 @@
+:root {
+  --fg: #1f2430; --muted: #5b6475; --bg: #ffffff; --line: #d9dee7; --soft: #f5f7fa;
+  --accent: #1f4e79; --code-bg: #f3f5f8; --quote: #fff9db; --quote-line: #bf9000;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.doc { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+h1, h2, h3, h4 { line-height: 1.3; margin: 1.6em 0 .6em; scroll-margin-top: 12px; }
+h1 { font-size: 1.9em; margin-top: 0; padding-bottom: .3em; border-bottom: 2px solid var(--accent); }
+h2 { font-size: 1.45em; padding-bottom: .25em; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.2em; }
+h4 { font-size: 1.05em; }
+p, ul, ol { margin: .6em 0; }
+li + li { margin-top: .2em; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+code { font: .88em/1.5 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  background: var(--code-bg); padding: .1em .35em; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; }
+pre code { background: none; padding: 0; overflow-wrap: normal; white-space: pre; }
+blockquote { margin: 1em 0; padding: .6em 1em; background: var(--quote); border-left: 4px solid var(--quote-line); border-radius: 0 6px 6px 0; }
+blockquote > :first-child { margin-top: 0; } blockquote > :last-child { margin-bottom: 0; }
+.table-wrap { overflow-x: auto; margin: 1em 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92em; }
+th, td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; }
+th { background: var(--soft); font-weight: 600; }
+tr:nth-child(even) td { background: #fbfcfd; }
+img { max-width: 100%; height: auto; display: block; margin: 1em auto; border: 1px solid var(--line); border-radius: 4px; }
+figure.diagram { margin: 1.2em 0; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; overflow-x: auto; text-align: center; }
+figure.diagram svg { max-width: 100%; height: auto; }
+@media (max-width: 640px) { .doc { padding: 20px 16px 48px; } body { font-size: 14px; } }
+@media print {
+  .doc { max-width: none; padding: 0; }
+  h1, h2, h3 { break-after: avoid; }
+  figure.diagram, img, tr, pre, blockquote { break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  a { color: inherit; }
+}

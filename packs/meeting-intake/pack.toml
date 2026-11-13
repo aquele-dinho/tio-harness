@@ -1,0 +1,3 @@
+name = "meeting-intake"
+description = "Skill meeting-intake: processa transcrições e atas de reunião — cruza com as perguntas em aberto, separa decisão de indicação, registra a ata e propõe respostas e atualizações com gate humano"
+requires = []

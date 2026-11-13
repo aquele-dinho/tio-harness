@@ -1,0 +1,10 @@
+description = "SDD review — @@project.name@@"
+prompt = """
+Contexto do projeto (fonte única de verdade):
+@{AGENTS.md}
+
+Instruções canônicas da fase `review`:
+@{docs/sdd/prompts/review.md}
+
+Alvo informado pelo usuário: {{args}}
+"""

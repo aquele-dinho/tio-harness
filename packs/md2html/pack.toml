@@ -1,0 +1,3 @@
+name = "md2html"
+description = "Conversor Markdown → HTML autocontido (imagens base64, Mermaid em SVG) para quem não tem acesso aos sistemas"
+requires = []

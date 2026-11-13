@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pylib/
+node_modules/
+*.tioh-new
+.env
+
+# Briefings reais ficam só na máquina (contêm IDs e regras de projetos); o exemplo fictício vive em examples/
+briefings/*.briefing.toml

@@ -1,0 +1,3 @@
+name = "playwright-qa"
+description = "Skill qa-playwright-scenario: cenários Playwright espelhando rotas HTTP reais, com rastreabilidade"
+requires = []

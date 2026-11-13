@@ -1,0 +1,184 @@
+# =============================================================================
+# Briefing — Tio Harness
+# =============================================================================
+# Descreve o projeto para que o framework instale o harness agêntico SDD (AGENTS.md,
+# prompts, skills, comandos por agente e scripts) já contextualizado.
+#
+# Regras de preenchimento:
+# - Só registre o que tem fonte (documento oficial, decisão registrada). Onde faltar,
+#   escreva "⚠️ A DEFINIR: <o que falta e quem responde>" — o `validate` conta essas lacunas.
+# - Campos marcados [obrigatório] são exigidos pelo `validate`.
+# - Listas vazias são válidas: a seção correspondente some do AGENTS.md gerado.
+# - Gerar este arquivo a partir de um documento descritivo: bootstrap/briefing-from-document.md
+# =============================================================================
+
+[project]
+name = ""                       # [obrigatório] nome oficial do sistema/projeto
+slug = ""                       # [obrigatório] kebab-case; usado em rótulos e caminhos
+description = ""                # [obrigatório] 1–3 frases: o que é e para que serve
+organization = ""
+anchor_ticket = ""              # ticket âncora do esforço (ex.: EXM-100), se houver
+repo_kind = "especificação + implementação"   # o que este repositório guarda
+output_language = "pt-BR"       # [obrigatório] idioma dos artefatos (docs, specs, commits, Jira)
+chat_language = "pt-BR"         # idioma da conversa com o agente
+objectives = []                 # objetivos do esforço, um por item
+
+# Fonte principal de negócio (ex.: DRN). Toda regra da spec se ancora nela.
+[sources.primary]
+title = ""                      # [obrigatório] ex.: "DRN — Documento de Regras de Negócio"
+id = ""                         # ID da página (Confluence) ou caminho do documento
+version_note = ""               # ex.: "muda com frequência — reler a versão viva antes de citar"
+
+# Demais documentos-fonte oficiais. role = para que serve; note = ressalvas.
+# [[sources.documents]]
+# title = "Diretrizes de Engenharia"
+# id = "123456"
+# role = "padrões técnicos obrigatórios"
+# note = ""
+
+[sources]
+archive_dirs = ["docs/.archive"]   # cópias históricas: somente leitura, nunca fonte viva
+precedence = []                    # regras de precedência em caso de conflito, uma por item
+
+[architecture]
+style = ""                      # ex.: "monolito modular hexagonal em AWS EKS"
+source = ""                     # documento/ADR que define a arquitetura
+principles = []                 # pressupostos técnicos consolidados (desvio exige ADR)
+containers = []                 # componentes/containers internos, se houver
+adr_patterns = []               # padrões a avaliar em cada ADR (ex.: "Outbox", "Idempotência")
+authority = ""                  # quem decide arquitetura (papéis/nomes informados pelo time) — pack architecture-advisor
+proposals_dir = "docs/sdd/arquitetura"   # onde ficam as notas de arquitetura (status PROPOSTA)
+
+# Diretrizes corporativas de arquitetura, lidas na fonte viva pelo architecture-advisor (repita o bloco).
+# ex.: title = "Direcionadores e Princípios de Arquitetura", id = "<ID da página>", scope = "corporativo"
+[[architecture.directives]]
+title = ""
+id = ""
+scope = ""                      # camada: corporativo | plataforma/domínio | projeto (precedência nessa ordem, conflito vira pergunta)
+topics = []                     # temas cobertos (ex.: "mensageria", "observabilidade") — a skill lê só os relevantes à questão
+
+[stack]
+language = ""                   # ex.: "Java 21"
+framework = ""                  # ex.: "Spring Boot 4"
+build_tool = ""                 # ex.: "Maven"
+base_package = ""               # pacote/namespace raiz, se aplicável
+test_cmd = ""                   # comando de teste no-watch (ex.: "mvn -B clean test")
+verify_cmd = ""                 # validação completa (ex.: "mvn -B clean verify")
+setup_cmds = []                 # pré-requisitos antes de testar (ex.: instalar lib local)
+unit_test_dir = ""              # ex.: "src/test/java/unit"
+functional_test_dir = ""        # ex.: "src/test/java/funcional"
+standards = []                  # convenções de código além da arquitetura
+
+# Só para o pack java-spring-hexagonal (ajuste os nomes se o padrão da casa mudar).
+[stack.hexagonal]
+business_dir = "business"
+port_dir = "business/port"
+adapter_dirs = ["controller", "events", "repository", "<integracao>"]
+usecase_suffix = "Business"
+forbidden_dirs = ["api", "application", "domain", "infrastructure"]
+
+[[repos]]
+path = ""                       # ex.: "repo/meu-servico" (vazio = o próprio repositório)
+role = ""
+reference = false               # true = código só de consulta (ex.: versão anterior): fora do "Repo alvo" das skills
+
+[domain]
+correlation_key = ""            # chave de correlação fim a fim, se houver
+invariants = []                 # regras de domínio que toda revisão deve conferir
+
+# Glossário. Repita o bloco por termo.
+[[domain.glossary]]
+term = ""
+definition = ""
+
+# Estados canônicos (não renomear). Repita por entidade.
+# [[domain.state_machines]]
+# entity = "Pedido"
+# states = ["CRIADO", "PAGO", "CANCELADO"]
+# note = ""
+
+[phasing]
+current = ""                    # entrega atual (ex.: "MVP — Cartão de Crédito")
+future = ""                     # entregas seguintes
+notes = []
+
+[sdd]
+unit = "módulo"                 # [obrigatório] unidade de especificação (módulo, capacidade, feature…)
+spec_dir = "docs/sdd/modulos"   # [obrigatório] onde ficam as specs
+pending_prefix = "P"            # prefixo das pendências (P-01, P-02…)
+api_guidelines = []             # ex.: "RESTful, camelCase, /api/v1, OAuth 2.0"
+security = []                   # ex.: "nenhum PAN armazenado"
+observability = []              # ex.: "logs JSON com traceId e chave de correlação"
+resilience = []                 # ex.: "DLQ por fila; timeout por meio"
+test_strategy = []              # tipos de teste exigidos
+review_extra = []               # itens extras do checklist de review
+
+# [[sdd.modules]]
+# id = "01"
+# slug = "configuracao-cadastro"
+# name = "Configuração e Cadastro"
+# phase = "MVP"
+# summary = ""
+
+# [[sdd.pending]]
+# id = "P-01"
+# text = ""
+# status = "aberto"
+
+[vcs]
+host = "gitlab"                 # gitlab | github (define glab/gh, MR/PR)
+base_branch = "developer"       # base preferida; se não existir no repo, o agente pergunta
+branch_pattern = "feature/<CHAVE>-<tNN>-<slug-curto>"
+commit_convention = "Conventional Commits em pt-BR (feat(<CHAVE>): …)"
+
+# Só para o pack atlassian.
+[atlassian]
+site = ""                       # ex.: "https://<organizacao>.atlassian.net"
+cloud_id = ""
+space = ""                      # space key do Confluence
+root_folder_id = ""             # pasta/página raiz oficial do projeto
+jira_project = ""               # chave do projeto Jira (ex.: EXM)
+status_in_progress = "Em Desenvolvimento"
+labels = ["sdd"]                # rótulos garantidos nas páginas publicadas
+story_points_field = ""         # ex.: "customfield_10001"
+sprint_field = ""               # ex.: "customfield_10002"
+cancel_status = "Cancelado"
+# Campos obrigatórios da tela de cancelamento (se o workflow exigir):
+# cancel_fields = { confirmacao = "customfield_x", motivo = "customfield_y", justificativa = "customfield_z", solicitante = "customfield_w" }
+# Raízes do índice local de páginas (scripts/sdd/gen-confluence-index.py):
+# index_roots = [{ id = "123", type = "folder", label = "Pasta oficial" }]
+# Mapa spec → página canônica (scripts/sdd/publish-specs.py):
+# spec_pages = { "01" = "123456" }
+
+[atlassian.mirror]
+# Espelhamento: todo documento de autoria do projeto (include − exclude) tem página espelho no Confluence,
+# mantida em sincronia por scripts/sdd/sync-mirror.py. Atualizar página espelho já registrada tem
+# autorização permanente; criar página e sobrescrever edição remota continuam com gate humano.
+enabled = false
+parent = ""                     # pasta/página-mãe padrão das páginas espelho novas
+# include = ["docs/**/*.md"]
+exclude_extra = []              # além dos arquivos do harness e dos archive_dirs, já excluídos
+# map = "docs/sdd/confluence-mirror.json"
+labels = []                     # rótulos extras das páginas espelho
+# Opcional: diagramas Mermaid como imagem (sem isso, ficam como código no Confluence)
+mermaid_md2html = ""            # conversor Node md2html (convert.mjs) que gera SVG dos diagramas
+mermaid_browser = ""            # Chromium/Edge para o screenshot (caminho /mnt/<x>/ = Windows via WSL)
+
+[meetings]
+# Pack meeting-intake: processamento de transcrições/atas de reunião
+transcripts_dir = ""             # onde o time deixa as transcrições (ex.: "G:\\Meu Drive\\<projeto>")
+notes_dir = "docs/sdd/atas"     # onde a skill registra as atas
+# Pessoas a mencionar nas respostas que pedem confirmação (account_id do Confluence/Jira):
+# mention = [{ name = "Nome", account_id = "", role = "papel; o que confirma" }]
+publish = ""                    # "jira": ata registrada no item do Jira relacionado (quando acordado), fora do espelho
+
+[rules]
+no_agent_attribution = true     # proíbe menção a IA/agentes e Co-Authored-By em artefatos
+extra = []                      # regras de trabalho específicas do projeto
+
+[agents]
+targets = ["copilot", "claude", "gemini", "warp"]   # [obrigatório] copilot | claude | gemini | warp | codex
+
+[packs]
+# [obrigatório] core é sempre incluído. Veja `python3 bin/tioh.py packs`.
+enabled = ["core"]

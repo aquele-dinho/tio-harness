@@ -1,0 +1,7 @@
+name = "atlassian"
+description = "Confluence/Jira: protocolo de sincronia, MCP, scripts REST (publicar specs/páginas, changeset Jira, índice)"
+requires = []
+
+[when]
+".mcp.json" = "agents.claude"
+".vscode/" = "agents.copilot"

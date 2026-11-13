@@ -1,0 +1,113 @@
+# Sincronia Confluence/Jira — @@project.name@@
+
+## 1. Objetivo
+Eliminar duplicação e divergência entre documentação local e Atlassian Cloud.
+**Confluence é a documentação oficial** (negócio/arquitetura publicada). O repositório guarda
+artefatos de trabalho SDD, código e ponteiros — não uma segunda wiki.
+@@if atlassian.mirror.enabled@@
+
+**Espelhamento ligado:** cada documento de autoria do projeto tem uma página espelho no Confluence e as duas
+versões ficam em sincronia (§5.5). Assim o material pode ser lido e mantido também por quem trabalha remotamente.
+O espelho vai do repositório para o Confluence; páginas de terceiros não são copiadas para o Git.
+@@endif@@
+
+## 2. Âncora oficial
+- **Site:** `@@atlassian.site@@`
+- **Space:** `@@atlassian.space@@`
+@@if atlassian.root_folder_id@@
+- **Pasta/página raiz oficial:** `@@atlassian.root_folder_id@@`
+@@endif@@
+- **Projeto Jira:** `@@atlassian.jira_project@@`
+@@if project.anchor_ticket@@
+- **Ticket âncora:** `@@project.anchor_ticket@@`
+@@endif@@
+
+## 3. Modelo de autoridade (SSOT por tipo de artefato)
+
+| Artefato | SSOT | Local permitido | Direção |
+|---|---|---|---|
+| Regras de negócio validadas (@@sources.primary.title@@) | fonte principal (`AGENTS.md` §2: Confluence ou Jira) | referência + ID | fonte → agentes (leitura) |
+| Diretrizes/arquitetura | Confluence | referência + ID | Confluence → agentes (leitura) |
+| Specs SDD (`@@sdd.spec_dir@@/`) | Git (WIP) até publicação | `*.md` | Git → Confluence (publicação controlada) |
+| Itens de trabalho | Jira | espelho opcional na seção de itens da spec | Spec → Jira (1:1); status Jira → spec (leitura) |
+| ADRs / decisões fechadas | Confluence + link no Git | resumo + link | bidirecional com gate humano |
+@@if atlassian.mirror.enabled@@
+| Documentos de autoria do projeto (@@atlassian.mirror.include@@) | Git (onde se edita) + página espelho | `*.md` + mapa `@@atlassian.mirror.map@@` | Git → Confluence a cada edição; edição remota volta ao Git antes do próximo envio (§5.5) |
+@@endif@@
+@@if sources.archive_dirs@@
+| Backups históricos (@@sources.archive_dirs@@) | **não-SSOT** | somente leitura | não atualizar; não usar como fonte |
+@@endif@@
+
+**Conflito:** Confluence oficial vence para negócio/arquitetura publicada; Jira vence para status de
+entrega; Git vence apenas para WIP SDD ainda não publicado.
+
+## 4. Acesso (ordem de preferência)
+1. **MCP Atlassian** (`https://mcp.atlassian.com/v1/mcp`, OAuth do usuário). `getAccessibleAtlassianResources`
+   → cloudId@@if atlassian.cloud_id@@ (`@@atlassian.cloud_id@@`)@@endif@@; depois `getConfluencePage`,
+   `searchConfluenceUsingCql`, `getJiraIssue`, `searchJiraIssuesUsingJql`.
+2. **`acli`** (passar `--fields` em buscas) ou **REST** via `scripts/sdd/atlassian_rest.py`.
+   Credencial em `~/.config/atlassian-mcp/rest.authorization.header` ou `ATLASSIAN_REST_AUTHORIZATION` — nunca impressa.
+3. **Proibido como fonte viva:** cópias locais de páginas.
+
+CQL úteis:
+```
+space = @@atlassian.space@@@@if atlassian.root_folder_id@@ AND ancestor = @@atlassian.root_folder_id@@@@endif@@
+
+```
+
+## 5. Fluxo anti-divergência
+### 5.1 Leitura (sempre)
+Antes de especificar, planejar ou implementar: ler as páginas oficiais por ID e o item Jira âncora; só então editar `docs/sdd/**` ou código.
+
+### 5.2 Escrita local (Git)
+Specs WIP em `@@sdd.spec_dir@@/`; toda seção cita origem (ID + §). Não copiar o corpo das páginas para o Git — resumo operacional + link canônico.
+
+### 5.3 Publicação no Confluence (gate humano)
+Só quando a spec passou por `review`, o diff foi revisado por humano e a página destino existe sob a raiz oficial.
+Via MCP ou `scripts/sdd/publish-specs.py` / `publish-page.py` (dry-run por padrão), com título estável,
+rótulos @@atlassian.labels@@ e rodapé de rastreio (arquivo + commit + data + autor).
+
+### 5.4 Publicação no Jira (itens de trabalho)
+Itens da fase `tasks` → itens 1:1 sob o épico/história correto, com SP e pendências bloqueantes.
+Mudanças em lote: changeset JSON aplicado com `scripts/sdd/jira-changeset.py` (idempotente, dry-run por padrão).
+Não manter kanban paralelo em Markdown.
+
+@@if atlassian.mirror.enabled@@
+### 5.5 Espelhamento dos documentos do projeto
+Ferramenta: `scripts/sdd/sync-mirror.py`. O mapa `@@atlassian.mirror.map@@` guarda, para cada arquivo, a página
+espelho, a versão da página e o blob do arquivo no último sync. Comparando com o estado atual, o status diz quem
+mudou desde então:
+
+| Estado | Significa | O que fazer |
+|---|---|---|
+| em dia | arquivo e página iguais ao último sync | nada |
+| local à frente | só o arquivo mudou | commitar e `push <arquivo> --apply` (autorização permanente) |
+| remoto alterado | só a página mudou | `diff <arquivo>`, incorporar no arquivo, commitar, `push --remoto-incorporado --apply` (confirmação humana) |
+| conflito | os dois mudaram | igual ao anterior, juntando as duas edições |
+| sem página | arquivo novo, sem espelho | `push --create <arquivo> --apply` (confirmação humana) |
+| página ausente / arquivo removido | um dos lados sumiu | resolver à mão |
+
+Regras:
+- Rodar o status antes de editar um documento espelhado e publicar no mesmo trabalho em que editar.
+- Depois de cada envio, commitar o mapa e regenerar o índice (`gen-confluence-index.py`).
+- Página existente publicada antes do espelhamento entra no mapa com `adopt <arquivo> --page <id>`.
+- Links entre documentos espelhados viram links entre as páginas.@@if atlassian.mirror.mermaid_md2html@@ Diagramas Mermaid viram imagem anexada (`render-mermaid.py`).@@else@@ Diagramas Mermaid ficam como código (configure `mermaid_md2html` e `mermaid_browser` para imagem).@@endif@@
+- Não editar a página espelho direto no Confluence se puder evitar: a edição precisa voltar ao arquivo antes do próximo envio.
+
+@@endif@@
+## 6. Checklist operacional
+**Pull:** MCP autenticado · raiz oficial listada · IDs de `AGENTS.md` §2 válidos · nenhuma cópia local usada como fonte.
+
+**Push:** mudança originada de fase SDD concluída · destino identificado (sem create cego) · sem segredos · rodapé preenchido · revisão humana antes de qualquer write@@if atlassian.mirror.enabled@@ (exceto atualizar página espelho registrada, §5.5)@@endif@@.
+
+**Drift (semanal ou pré-release):** `python3 scripts/sdd/gen-confluence-index.py` e comparar a coluna `Ver.` com as versões citadas nas specs.
+
+## 7. Regras duras
+@@if atlassian.mirror.enabled@@
+1. Não copiar páginas de terceiros para o Git; espelhar só os documentos de autoria do projeto (§5.5).
+@@else@@
+1. Não espelhar a wiki no Git.
+@@endif@@
+2. Não inventar decisão de negócio; sem fonte, `⚠️ PENDÊNCIA`.
+3. Writes no Confluence/Jira exigem confirmação humana@@if atlassian.mirror.enabled@@, exceto atualizar página espelho já registrada a partir do arquivo local@@endif@@.
+4. Segredos só via env/OAuth; nunca em páginas, specs ou logs.

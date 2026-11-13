@@ -1,0 +1,130 @@
+---
+name: architecture-advisor
+description: >-
+  Use esta skill para preparar uma sugestão de arquitetura de solução de @@project.name@@ como apoio aos arquitetos
+  responsáveis — não como decisão. Enquadra a questão, levanta 2–4 alternativas, avalia cada uma contra as diretrizes
+  de arquitetura (corporativas, de plataforma e do projeto, lidas na fonte viva), as invariantes, o que já existe no
+  código e as pendências, e entrega uma nota de arquitetura com trade-offs, sugestão condicionada e perguntas para quem
+  decide. Acione quando o usuário pedir opções de arquitetura, comparação de tecnologias/padrões, preparação de ADR,
+  insumo para reunião ou validação de arquitetura, ou análise de aderência às diretrizes.
+---
+
+# Skill: Architecture Advisor (apoio à decisão)
+
+## Postura
+Esta skill **apoia** a arquitetura; ela não decide nem cobra. Quem decide:
+@@if architecture.authority@@
+**@@architecture.authority@@**.
+@@else@@
+os arquitetos responsáveis pelo projeto (⚠️ A DEFINIR: registrar em `architecture.authority` no briefing).
+@@endif@@
+- Escreva como **sugestão** ("sugerimos avaliar", "uma alternativa é"), nunca como exigência ("deve", "é obrigatório")
+  dirigida aos arquitetos. Obrigatoriedade só existe quando a própria fonte diz — e então cite a fonte.
+- Toda nota nasce com status **`⚠️ PROPOSTA — para validação arquitetural`**, separando **elaboração** (quem preparou)
+  de **validação** (arquiteto responsável). O status só muda quando a validação for registrada (quem, quando, onde).
+- Decisão já tomada não é reaberta. Se houver risco relevante, registre-o **uma vez**, com evidência, como ponto de
+  atenção — sem insistir nem escalar.
+- Mostre o raciocínio (critérios, evidências, incertezas) em vez de defender uma opção.
+
+## Inputs
+- **Questão de arquitetura** a apoiar (ex.: tecnologia de mensageria, estratégia de idempotência, mecanismo de acionamento).
+- **@@sdd.unit@@ / escopo afetado** (`AGENTS.md` §6) e pendências relacionadas (`@@sdd.pending_prefix@@-xx`).
+- **Restrições adicionais** que o usuário queira registrar (prazo, plataforma disponível, time).
+Se a questão estiver vaga, faça **uma** pergunta objetiva antes de seguir.
+
+## Contexto obrigatório (somente leitura)
+1. `AGENTS.md` — §7 (arquitetura, restrições, fora de escopo), §8 (pendências), §10 (pressupostos e invariantes).
+2. Spec do(a) @@sdd.unit@@ em `@@sdd.spec_dir@@/<slug>.md`, se existir, e a seção "Decisões arquiteturais".
+3. Notas anteriores em `@@architecture.proposals_dir@@/` — não contradizer decisão registrada; atualizar nota existente
+   da mesma questão em vez de criar outra.
+4. Fonte principal: **@@sources.primary.title@@**@@if sources.primary.id@@ (ID `@@sources.primary.id@@`)@@endif@@ — reler a versão viva.
+5. **Diretrizes de arquitetura** — ler na fonte viva **as que cobrem os temas da questão**:
+@@if architecture.directives@@
+@@for d in architecture.directives@@
+   - **@@d.title@@**@@if d.id@@ — ID `@@d.id@@`@@endif@@@@if d.scope@@ — @@d.scope@@@@endif@@@@if d.topics@@ — temas: @@d.topics@@@@endif@@
+@@endfor@@
+@@else@@
+   - ⚠️ A DEFINIR: nenhuma diretriz registrada em `architecture.directives` no briefing. Pergunte ao usuário qual
+     documento usar; sem ele, a aderência fica marcada como "não verificada".
+@@endif@@
+   Precedência: **corporativo → plataforma/domínio → projeto**. Conflito entre camadas (ex.: padrão de plataforma ×
+   restrição do projeto) **não é resolvido pela skill**: vira pergunta para a arquitetura, com as duas citações.
+@@if architecture.source@@
+6. Arquitetura vigente do projeto: @@architecture.source@@.
+@@endif@@
+@@if repos@@
+7. Código existente, quando a questão depende de capacidade já implementada: repositórios de `AGENTS.md` §7 —
+   registrar repo, branch e data da leitura (produção × integrado-não-liberado, se o fluxo do time distinguir).
+@@endif@@
+
+Acesso às fontes: mesma cadeia de fallback do `source-intake`@@if has.atlassian@@ (MCP Atlassian → `acli` → REST)@@endif@@.
+Registre a **versão/data lida** de cada fonte. Fonte ilegível é dita na nota — nunca reconstruída de memória.
+
+## Processo
+1. **Enquadrar a questão** — problema em uma frase; *drivers* com origem (requisito, RNF, AC, ata); restrições; o que
+   **já está decidido** (pressupostos de §10 — não rediscutir sem ADR); o que está **fora de escopo**.
+2. **Mapear o que já existe** — capacidades, plataformas e componentes reaproveitáveis (diretrizes de plataforma,
+   código, outros projetos documentados) e o que **não existe** e precisaria ser construído ou provisionado.
+3. **Levantar 2–4 alternativas** reais e comparáveis, começando pelo reuso quando houver. Alternativa que viole
+   invariante ou reintroduza item fora de escopo aparece só como "descartada por <regra>".
+4. **Avaliar** com `references/directive-lens.md`: matriz de aderência às diretrizes lidas, pressupostos e invariantes;
+   cenários de atributo de qualidade (QAS) para os RNFs envolvidos; reversibilidade; dependências; riscos.
+   Cada afirmação traz o tipo de evidência: **fonte**, **código**, **inferência** ou **desconhecido**.
+5. **Sugerir** — a alternativa que parece mais aderente, **condicionada**: "sugerimos X *se* <premissas>; Y passa a
+   ser preferível *se* <condição>". Diga o que mudaria a sugestão.
+6. **Perguntas para a arquitetura** — o que falta para decidir, quem responde (papel) e qual pendência destrava.
+7. **Diagramas** quando ajudarem a comparar: contexto/containers (C4) e sequência, em Mermaid.
+8. **Registrar** a nota com `references/proposal-template.md` em
+   `@@architecture.proposals_dir@@/<slug-da-questao>.md` (versionando no histórico da própria nota) e vincular as
+   pendências. Mostre o resumo ao usuário.
+9. **Compartilhar (gate humano):** publicar no @@docs_platform@@, comentar em página ou anexar a item do @@tracker.name@@
+   só com confirmação explícita **por ação**. Sem confirmação, entregue o texto pronto para o usuário levar.
+10. **Após a validação** — só quando o usuário informar que um arquiteto responsável decidiu (com referência: ata,
+    página, comentário): registrar na nota `Validado/decidido por <quem> em <data> — <referência>` e as condições
+    da aprovação, refletir na seção "Decisões arquiteturais" da spec e atualizar a pendência. Opinião do agente nunca vira decisão.
+
+## Regras inegociáveis
+- **Não alucinar:** volumes, TPS, latência, custos, SLAs, limites de mensagem, licenças, versões e esforço só com fonte
+  (ou estimativa do time, citada). Sem fonte → `⚠️ A DEFINIR` ou pergunta. Nada de *benchmark* de memória como fato.
+- Não copiar o texto das diretrizes para o repositório: cite título, ID, versão e o item aplicado.
+- Não escolher tecnologia por popularidade ou preferência; todo critério remete a diretriz, requisito ou restrição.
+- Fato sobre sistema de outro time reflete o que foi lido (código/documento, com data) — não é compromisso desse time.
+- Não registrar a sugestão como decisão em spec, ADR, @@tracker.name@@ ou @@docs_platform@@.
+- Toda escrita externa exige gate humano explícito.
+@@if rules.no_agent_attribution@@
+- Nenhuma menção a uso de agente na nota, em comentários ou páginas.
+@@endif@@
+- Sem segredos, credenciais ou dados pessoais nos exemplos.
+@@for i in domain.invariants@@
+- Nenhuma alternativa sugerida pode violar: @@i@@
+@@endfor@@
+@@if phasing.future@@
+- Não antecipar entregas futuras (@@phasing.future@@) sem decisão oficial.
+@@endif@@
+
+## Relação com outras etapas
+- `plan` (SDD) consolida as ADRs da spec; esta skill aprofunda **uma** questão quando há alternativas reais a pesar,
+  e o resultado entra no `plan` como `⚠️ PROPOSTA` até a validação.
+- `source-intake` não trata nota em status `PROPOSTA` como decisão confirmada.
+
+## Saída esperada (no chat)
+```text
+Questão
+- <uma frase> — @@sdd.unit@@: <slug> — pendências: <@@sdd.pending_prefix@@-xx>
+
+Fontes consultadas
+- <título> (ID, camada, versão/data lida) | não lida — <motivo>
+
+Alternativas
+- A: <nome> — aderência: <resumo> — principais riscos: <…>
+- B: …
+
+Sugestão (para validação)
+- <alternativa> se <premissas>; reavaliar se <condição>
+
+Conflitos entre diretrizes / perguntas para a arquitetura
+- <pergunta> — destrava <@@sdd.pending_prefix@@-xx> — quem responde: <papel>
+
+Nota registrada
+- @@architecture.proposals_dir@@/<arquivo>.md — status: PROPOSTA
+```

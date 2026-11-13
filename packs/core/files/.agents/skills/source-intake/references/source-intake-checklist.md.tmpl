@@ -1,0 +1,35 @@
+# Source Intake Checklist
+
+## Antes de implementar
+- Ler `AGENTS.md` raiz e do repo alvo.
+- Buscar a fonte oficial e o item `@@tracker.key@@` informados.
+- Confirmar ADR aplicável e critérios de aceite.
+- Identificar pendências `@@sdd.pending_prefix@@-XX` e `A DEFINIR`.
+- Confirmar repo alvo; `git fetch origin`; resolver base (`@@vcs.base_branch@@`, senão perguntar).
+- Working tree limpo antes de criar/trocar de branch.
+- Branch registrada no brief.
+- Status no @@tracker.name@@ lido; transição para `@@tracker.status_in_progress@@` perguntada quando aplicável; resultado registrado.
+
+## Perguntas mínimas
+- Qual repo será alterado?
+- Qual @@sdd.unit@@/capacidade é afetado(a)?
+- Qual fonte oficial autoriza a implementação?
+@@if phasing.current@@
+- É da entrega atual (@@phasing.current@@) ou de entrega seguinte?
+@@endif@@
+- Há dependência de sistema externo sem contrato?
+- Quais estados canônicos são tocados?
+
+## Gate de referência
+- O item cobre o(a) @@sdd.unit@@ pedido(a)?
+- A seção citada existe?
+- Fonte e @@tracker.name@@ descrevem o mesmo escopo?
+- Divergência → `⚠️ REFERÊNCIA INCORRETA`, candidatos, parar.
+
+## Sinais de bloqueio
+- Fonte oficial inacessível por todas as vias.
+- Referência não corresponde ao alvo; seção inexistente.
+- Fonte e @@tracker.name@@ contraditórios.
+- Decisão arquitetural pendente; integração externa sem contrato.
+- Regra de formato/validação sem definição na fonte.
+- Working tree sujo; base branch indefinida.

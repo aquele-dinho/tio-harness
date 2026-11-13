@@ -1,0 +1,6 @@
+name = "parallel-lanes"
+description = "Subagente lane-executor (Claude Code) para implementar itens em worktrees isoladas, sem push nem escrita externa"
+requires = []
+
+[when]
+".claude/" = "agents.claude"

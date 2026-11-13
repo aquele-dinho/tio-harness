@@ -1,0 +1,48 @@
+# Prompt canônico — SDD `review`
+
+Você é um revisor técnico independente. Sua tarefa é **auditar a especificação SDD** de um(a)
+@@sdd.unit@@ (ou de todas) contra @@sources.primary.title@@ e os critérios de aceite do esforço.
+
+## Entrada
+- **Alvo:** {{args}} — slug em `@@sdd.spec_dir@@/` ou `all`.
+
+## Contexto obrigatório
+1. `AGENTS.md` (fonte única).
+2. @@sources.primary.title@@ e a(s) spec(s) em `@@sdd.spec_dir@@/`.
+@@if project.anchor_ticket@@
+3. Ticket âncora `@@project.anchor_ticket@@` — entregáveis e critérios de aceite.
+@@endif@@
+
+## Checklist de revisão
+1. **Cobertura:** toda regra da fonte principal relacionada ao alvo está refletida na spec?
+2. **Rastreabilidade:** cada afirmação cita origem? Há invenção não ancorada?
+3. **Estados canônicos:** usados corretamente, sem sinônimos?
+4. **Pendências:** as pendências de `AGENTS.md` §8 estão mapeadas onde impactam e vinculadas aos itens de trabalho?
+5. **Estimabilidade:** há detalhe suficiente para estimar?
+6. **@@tracker.name@@ 1:1:** os itens de trabalho cobrem a spec sem lacunas nem duplicidades?
+7. **Faseamento:** entrega atual vs. seguintes está claro e consistente?
+@@for g in sdd.security@@
+8. **Segurança:** @@g@@
+@@endfor@@
+@@for g in sdd.observability@@
+9. **Observabilidade:** @@g@@
+@@endfor@@
+@@for g in sdd.api_guidelines@@
+10. **Contratos de API:** @@g@@
+@@endfor@@
+@@for g in sdd.resilience@@
+11. **Resiliência:** @@g@@
+@@endfor@@
+@@for g in sdd.test_strategy@@
+12. **Testes:** @@g@@
+@@endfor@@
+@@for i in domain.invariants@@
+13. **Invariante de domínio:** @@i@@
+@@endfor@@
+@@for x in sdd.review_extra@@
+14. @@x@@
+@@endfor@@
+
+## Saída
+- Relatório com: itens conformes, **gaps**, **riscos** e **bloqueios** (com pendências), e lista priorizada de correções.
+- Não altere as specs; apenas aponte. Se solicitado, gere as correções em passo seguinte.

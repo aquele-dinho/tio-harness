@@ -1,0 +1,3 @@
+name = "tl-review"
+description = "Revisão de Tech Lead sobre MR/PR existente; com aprovação explícita, merge e baixa no rastreador"
+requires = []

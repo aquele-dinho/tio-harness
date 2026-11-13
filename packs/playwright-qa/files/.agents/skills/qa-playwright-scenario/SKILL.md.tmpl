@@ -1,0 +1,49 @@
+---
+name: qa-playwright-scenario
+description: >-
+  Use esta skill para adicionar ou atualizar cenários Playwright em qa/playwright/ de @@project.name@@ sempre que uma fatia
+  mesclada em @@vcs.base_branch@@ expõe ou altera uma rota HTTP real. Garante rastreabilidade (@@tracker.key@@/fonte oficial) idêntica
+  à documentação do controller, evita inventar cobertura para regras sem endpoint HTTP e registra essas lacunas via test.fixme.
+  Acione após merge em @@vcs.base_branch@@ ou quando o usuário pedir para atualizar os cenários de demonstração para PO/QA.
+---
+
+# Skill: QA Playwright Scenario
+
+## Objetivo
+Manter `qa/playwright/tests/` (no repo de implementação) como espelho vivo e executável do que está **realmente
+exposto via HTTP** em `@@vcs.base_branch@@` — nunca do que a spec descreve como planejado. Serve de material de
+apresentação (relatório HTML com trace) e de suíte reaproveitável pelo QA. **Não é gate de entrega.**
+
+## Checklist de decisão (por fatia mesclada)
+1. **A fatia introduziu/alterou endpoint acessível via HTTP?**
+   - **Não** → não criar spec novo; garantir entrada em `qa/playwright/tests/documentacao/nao-demonstravel-via-http.spec.ts`
+     (`test.fixme`) citando o item `@@tracker.key@@` e o **nome exato** do teste automatizado que prova a regra. Parar.
+   - **Sim** → seguir.
+2. **Existe teste funcional** cobrindo o endpoint? Se não, não inventar payload/erro — reportar e sugerir `test-quality-loop`.
+3. **Exige autenticação/escopo?** Escolher a fixture adequada (autenticada, sem escopo, pública) em `qa/playwright/support/`.
+4. **Há ID de fonte oficial** na documentação do controller/DTO? Citar exatamente; replicar ressalvas `⚠️ A DEFINIR`/`⚠️ PROPOSTA`.
+
+## Processo
+1. Ler `AGENTS.md` (raiz e repo alvo) e a documentação do controller/DTOs afetados.
+2. Rodar o checklist.
+3. Criar/editar `qa/playwright/tests/<recurso>/<cenario>.spec.ts` (`<recurso>` = path REST em kebab-case):
+   fixture certa · `citarFonte(testInfo, {...})` no início · payload derivado do teste funcional equivalente ·
+   dados únicos por execução (uuid)@@if domain.correlation_key@@, inclusive `@@domain.correlation_key@@`@@endif@@.
+4. Env var nova → documentar só o **nome** em `qa/playwright/.env.example`.
+5. Rodar em no-watch (`npm test` em `qa/playwright`, com a aplicação local já de pé) e confirmar que nada existente quebrou.
+6. Reportar arquivos, item, comando e resultado@@if rules.no_agent_attribution@@ — sem menção a uso de agente@@endif@@.
+
+## Saída esperada
+```text
+Resumo
+- <cenário(s) adicionado(s)/atualizado(s), ou "sem endpoint HTTP novo — registrado em documentacao/">
+
+Arquivos principais
+- <arquivo>: <motivo>
+
+Validação
+- npm test: <resultado>
+
+Pendências
+- <lacuna HTTP registrada, se houver>
+```

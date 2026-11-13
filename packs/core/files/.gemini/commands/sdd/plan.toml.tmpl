@@ -1,0 +1,10 @@
+description = "SDD plan — @@project.name@@"
+prompt = """
+Contexto do projeto (fonte única de verdade):
+@{AGENTS.md}
+
+Instruções canônicas da fase `plan`:
+@{docs/sdd/prompts/plan.md}
+
+Alvo informado pelo usuário: {{args}}
+"""

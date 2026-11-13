@@ -1,0 +1,13 @@
+---
+name: 'sdd-specify'
+description: 'Gera/atualiza a especificação SDD de um(a) @@sdd.unit@@ de @@project.name@@'
+agent: 'agent'
+argument-hint: '<@@sdd.unit@@>'
+---
+Siga o prompt canônico da fase `specify`, definido em
+[docs/sdd/prompts/specify.md](../../docs/sdd/prompts/specify.md).
+
+Contexto do projeto: [AGENTS.md](../../AGENTS.md).
+Template: [docs/sdd/TEMPLATE-spec.md](../../docs/sdd/TEMPLATE-spec.md).
+
+Alvo: ${input:alvo:Qual @@sdd.unit@@ especificar? (ver AGENTS.md §6)}

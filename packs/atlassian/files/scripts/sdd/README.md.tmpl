@@ -1,0 +1,54 @@
+# Ferramentas SDD — @@project.name@@
+
+Scripts para sincronizar o trabalho local com o Confluence e o Jira (protocolo:
+[`docs/sdd/CONFLUENCE-SYNC.md`](../../docs/sdd/CONFLUENCE-SYNC.md)). Configuração do projeto em
+`.ai-framework/project.json` (gerado do briefing). Credencial em
+`~/.config/atlassian-mcp/rest.authorization.header` ou `ATLASSIAN_REST_AUTHORIZATION`, nunca impressa.
+
+**Regra comum:** scripts que escrevem rodam em **dry-run por padrão**; `--apply` escreve e exige gate humano.
+
+| Script | Faz | Escreve em |
+|---|---|---|
+| `gen-confluence-index.py` | Gera `docs/sdd/confluence-index.md` (IDs, títulos, versões) a partir de `atlassian.index_roots` | arquivo local |
+| `publish-specs.py` | Publica `@@sdd.spec_dir@@/<id>-*.md` na página mapeada em `atlassian.spec_pages` | Confluence |
+| `publish-page.py` | Publica qualquer Markdown como página (cria sob uma mãe ou atualiza por id) | Confluence |
+| `patch-page.py` | Substituições "de → para" no storage de uma página editada à mão | Confluence |
+| `sync-mirror.py` | Espelhamento (`atlassian.mirror`): status de cada documento × página espelho, envio, criação, adoção de página existente e diff | Confluence + mapa local |
+| `render-mermaid.py` | Renderiza os diagramas Mermaid de um `.md` em PNG (opcional; usado pelo `sync-mirror.py`) | arquivos temporários |
+| `jira-changeset.py` | Aplica um changeset JSON (criar, SP, rótulos, mover, cancelar, transicionar, sprint…) | Jira |
+| `md2storage.py` | Markdown (GFM) → storage XHTML do Confluence | stdout |
+| `atlassian_rest.py` | Cliente REST comum (`call`, `search`, `myself`, `adf`, `CFG`) | — |
+| `install-agent-skills.sh` | Espelha `.agents/skills` em repos aninhados e em `.claude/skills` | arquivos locais |
+
+## Publicar specs
+```bash
+git add @@sdd.spec_dir@@ && git commit -m "..."     # o rodapé cita o commit: commite antes
+python3 scripts/sdd/publish-specs.py 01            # dry-run
+python3 scripts/sdd/publish-specs.py 01 --apply    # publica
+python3 scripts/sdd/gen-confluence-index.py        # atualiza o índice local
+```
+
+@@if atlassian.mirror.enabled@@
+## Espelhar documentos
+```bash
+python3 scripts/sdd/sync-mirror.py                                   # status de todos os documentos
+git add docs && git commit -m "..."                                  # o rodapé cita o commit: commite antes
+python3 scripts/sdd/sync-mirror.py push docs/x.md --apply            # atualiza a página espelho
+python3 scripts/sdd/sync-mirror.py push --create docs/novo.md --apply   # cria página (gate humano)
+git add @@atlassian.mirror.map@@ && git commit -m "..."              # registra a nova versão no mapa
+```
+Edição feita direto no Confluence aparece como "remoto alterado": `sync-mirror.py diff <arquivo>`, incorporar
+no arquivo e publicar com `--remoto-incorporado` (gate humano). Protocolo: `docs/sdd/CONFLUENCE-SYNC.md` §5.5.
+
+@@endif@@
+## Changeset no Jira
+```bash
+cp scripts/sdd/examples/changeset-exemplo.json docs/sdd/analises/changeset-AAAA-MM-DD.json   # editar
+python3 scripts/sdd/jira-changeset.py docs/sdd/analises/changeset-AAAA-MM-DD.json            # dry-run
+python3 scripts/sdd/jira-changeset.py docs/sdd/analises/changeset-AAAA-MM-DD.json --blocos criar --apply
+```
+Idempotente: relê o estado e só aplica a diferença. SP só é gravado se o valor atual for o `de`.
+
+## Dependência
+`md2storage.py` precisa do pacote `markdown`; sem `pip`, a wheel fixa é baixada do PyPI na primeira
+execução, conferida por SHA-256 e extraída em `scripts/sdd/.pylib/` (fora do Git).

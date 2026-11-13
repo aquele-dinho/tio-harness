@@ -1,0 +1,12 @@
+---
+name: 'sdd-tasks'
+description: 'Decompõe a spec de um(a) @@sdd.unit@@ de @@project.name@@ em itens de trabalho 1:1 com o @@tracker.name@@'
+agent: 'agent'
+argument-hint: '<@@sdd.unit@@>'
+---
+Siga o prompt canônico da fase `tasks`, definido em
+[docs/sdd/prompts/tasks.md](../../docs/sdd/prompts/tasks.md).
+
+Contexto do projeto: [AGENTS.md](../../AGENTS.md).
+
+Alvo: ${input:alvo:Qual @@sdd.unit@@ decompor?}

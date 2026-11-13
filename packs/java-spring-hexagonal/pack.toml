@@ -1,0 +1,3 @@
+name = "java-spring-hexagonal"
+description = "Skill hexagonal-module (business/port + adapter/*) para serviços Java/Spring Boot em arquitetura hexagonal (nomes de pacotes configuráveis no briefing)"
+requires = []

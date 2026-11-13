@@ -1,0 +1,143 @@
+---
+name: meeting-intake
+description: >-
+  Use esta skill para processar a transcrição ou a ata de uma reunião de @@project.name@@: ler o material inteiro,
+  cruzar o que foi dito com as perguntas em aberto (comentários na fonte principal, checklists, pendências, notas de
+  arquitetura), separar decisão de indicação, registrar a ata no repositório e propor as respostas e atualizações
+  decorrentes — com gate humano para toda escrita externa. Acione quando o usuário compartilhar ou apontar uma
+  transcrição, gravação transcrita, ata ou anotações de reunião, ou pedir para "processar a reunião", "ver o que foi
+  respondido" ou "atualizar com o que foi falado".
+---
+
+# Skill: Meeting Intake (reunião → respostas rastreáveis)
+
+## Postura
+- **Transcrição não é especificação.** Ela registra condução (o que foi dito, por quem, quando). Onde divergir da
+  fonte principal, vale a fonte principal — e a divergência vira pergunta, não correção silenciosa.
+- **Decisão só com quem decide.** Registre como *decisão* apenas o que foi decidido por quem tem o papel para isso
+@@if architecture.authority@@
+  (arquitetura: @@architecture.authority@@; negócio: o responsável de produto/negócio do projeto).
+@@else@@
+  (papéis em `AGENTS.md`). Na dúvida, registre como *indicação*.
+@@endif@@
+  O resto é **indicação** (rumo dito, a confirmar) ou **em aberto**.
+- **Fiel ao que foi dito.** Transcrição automática erra nomes, termos e números: trecho ambíguo é marcado como tal e
+  vira pergunta — nunca é "corrigido" por suposição.
+- Este trabalho alimenta pessoas que não estavam na reunião: escreva para quem vai ler sem ter ouvido.
+
+## Inputs
+- **Transcrição/ata:** texto colado, caminho de arquivo@@if meetings.transcripts_dir@@ (padrão do projeto: `@@meetings.transcripts_dir@@`)@@endif@@ ou
+  documento online.
+- **Reunião:** nome e data (absoluta). Se faltarem, deduza do arquivo e confirme na saída.
+- **Escopo opcional:** perguntas específicas que o usuário quer ver respondidas.
+
+## Acesso ao arquivo
+- **Transcrição bruta não é artefato do projeto:** nunca é versionada nem publicada. Se a pasta de transcrições ficar
+  dentro do repositório, ela precisa estar no `.gitignore`@@if atlassian.mirror.enabled@@ e fora do espelhamento (`exclude_extra`)@@endif@@;
+  se não estiver, avise o usuário antes de seguir. Fora dessa pasta, trabalhe com uma cópia numa pasta temporária da sessão.
+- Caminho de unidade do Windows (ex.: Google Drive) que não aparece no WSL (`/mnt/<x>` com "No such device"): liste e
+  copie via `cmd.exe` com um arquivo `.bat` (CRLF) em `C:\Users\Public` — aspas inline no `cmd.exe` e o
+  `powershell.exe` costumam falhar por interop. Depois mova a cópia para a pasta temporária e apague o `.bat`.
+- Arquivo do Google Docs (`.gdoc`) é só um atalho: peça a versão exportada (`.md`/`.txt`) ou o texto colado.
+
+## Contexto obrigatório (somente leitura)
+1. `AGENTS.md` — §2 (fontes e precedência), §7 (papéis e decisões já registradas), §8 (pendências), §10 (regras).
+2. Fonte principal: **@@sources.primary.title@@**@@if sources.primary.id@@ (ID `@@sources.primary.id@@`)@@endif@@ — versão viva@@if has.atlassian@@,
+   com **todos os comentários e suas respostas** (no Jira, os do item; no Confluence, inline e de rodapé)@@endif@@. Inclua
+   os documentos-fonte de `AGENTS.md` §2 que tenham fios de perguntas em aberto.
+3. Perguntas e pendências em aberto no repositório: checklists e planos em `docs/`, notas em
+   `@@architecture.proposals_dir@@/` (seção de perguntas), pendências `@@sdd.pending_prefix@@-xx`.
+4. Atas anteriores em `@@meetings.notes_dir@@/` — não contradizer o que já foi registrado sem apontar a mudança.
+@@if atlassian.mirror.enabled@@
+5. `python3 scripts/sdd/sync-mirror.py` (status) antes de editar qualquer documento espelhado; edição remota volta
+   ao arquivo primeiro.
+@@endif@@
+
+## Processo
+1. **Ler a transcrição inteira**, do início ao fim (não amostrar). Anote participantes, papéis e marcas de tempo.
+2. **Levantar as perguntas em aberto** (contexto obrigatório 2 e 3), cada uma com sua origem (comentário, item de
+   checklist, pendência, nota).
+3. **Cruzar** cada pergunta com a transcrição: `respondida` · `parcial` · `em aberto`, com quem falou e o momento
+   (marca de tempo aproximada). Uma resposta só conta se tratou do ponto — tema parecido não é resposta.
+4. **Classificar o que surgiu além das perguntas:**
+   - **Decisão** — quem decidiu (papel), o quê e o efeito;
+   - **Indicação** — rumo dito, a confirmar, e por quem;
+   - **Ação** — responsável e prazo, se dito (sem prazo dito, sem prazo inventado);
+   - **Tema novo / risco** — o que mudou o entendimento;
+   - **Divergência com a fonte principal** — citar a seção da fonte e o que foi dito.
+5. **Registrar a ata** com `references/ata-template.md` em `@@meetings.notes_dir@@/AAAA-MM-DD-<slug>.md` e commitar.
+@@if meetings.publish == "jira"@@
+   A ata **não é espelhada**: quando acordado com o cliente, é registrada no item do @@tracker.name@@ relacionado
+   (comentário ou anexo), com confirmação humana.
+@@else@@
+@@if atlassian.mirror.enabled@@
+   A ata é documento espelhado: criar a página (`sync-mirror.py push --create`) exige confirmação humana.
+@@endif@@
+@@endif@@
+6. **Propor as atualizações decorrentes**, sem aplicar decisão que não houve:
+   - itens de checklist/plano → status e "resposta/referência" (quem, quando, onde);
+   - pendências `@@sdd.pending_prefix@@-xx` → nota com a data da reunião (fechar só com decisão);
+   - notas de arquitetura → evidência nova; validação só com decisão do responsável (skill `architecture-advisor`, passo 10);
+   - definições que mudam escopo ou premissa → sugerir o ajuste no briefing/`AGENTS.md`.
+@@if has.atlassian@@
+7. **Responder nos fios da fonte principal** (gate humano — mostrar os textos e pedir confirmação antes de postar):
+   - uma resposta por fio, começando por "Retorno da reunião de DD/MM/AAAA:";
+   - dizer o que foi respondido, o que ficou parcial e o que segue em aberto, com o que falta e de quem;
+@@if meetings.mention@@
+   - mencionar quem precisa confirmar (`<span data-type="mention" data-user-id="ID">@Nome</span>` no formato html):
+@@for p in meetings.mention@@
+     - **@@p.name@@** (`@@p.account_id@@`)@@if p.role@@ — @@p.role@@@@endif@@
+@@endfor@@
+@@endif@@
+   - pergunta nova que a reunião levantou vira comentário novo, ancorado no trecho da fonte a que se refere.
+@@else@@
+7. **Preparar as respostas** às perguntas em aberto como texto pronto para o usuário levar à fonte principal (uma por
+   pergunta, começando por "Retorno da reunião de DD/MM/AAAA:"); publicar só com confirmação humana.
+@@endif@@
+8. **Mostrar o resumo** ao usuário (formato abaixo) e o que depende de confirmação dele.
+
+## Regras inegociáveis
+- **Não alucinar:** nada de decisão, prazo, número, nome de sistema ou responsável que não esteja na transcrição ou
+  nas fontes. Trecho ambíguo → "a confirmar" + pergunta.
+- **Texto para fora do repositório** (comentários, páginas, mensagens) cita a fonte principal (seção, item, critério) —
+  nunca códigos internos do repositório (`@@sdd.pending_prefix@@-xx`, IDs de checklist) sem explicá-los.
+- Indicação nunca é escrita como decisão; decisão sem o responsável presente é indicação.
+- Datas sempre absolutas (DD/MM/AAAA); horários com o fuso implícito do time.
+- Sem dados pessoais além de nome e papel; sem trechos longos da transcrição — resumo fiel, citação curta só quando a
+  formulação exata importa.
+- Toda escrita externa (@@docs_platform@@@@if tracker.name@@, @@tracker.name@@@@endif@@, chat) exige confirmação humana explícita por ação@@if atlassian.mirror.enabled@@, salvo
+  atualizar página espelho já registrada a partir do arquivo local@@endif@@.
+@@if rules.no_agent_attribution@@
+- Nenhuma menção a uso de agente na ata, nos comentários ou nas mensagens.
+@@endif@@
+
+## Relação com outras skills
+- `architecture-advisor`: a ata é a referência que o passo 10 (registro da validação) exige.
+- `source-intake`: decisões registradas na ata entram como contexto; indicações continuam pendentes.
+
+## Saída esperada (no chat)
+```text
+Reunião
+- <nome> — <DD/MM/AAAA> — participantes: <nomes (papéis)>
+
+Perguntas em aberto × reunião
+- <pergunta/origem> — respondida | parcial | em aberto — <quem disse> — <o que falta>
+
+Decisões
+- <decisão> — <quem decidiu (papel)>
+
+Indicações (a confirmar)
+- <rumo> — <quem disse> — <quem confirma>
+
+Ações
+- <ação> — <responsável> — <prazo, se dito>
+
+Divergências com a fonte principal
+- <seção> — <o que foi dito>
+
+Ata registrada
+- @@meetings.notes_dir@@/<arquivo>.md
+
+Próximos passos (precisam da sua confirmação)
+- <respostas a postar, documentos a atualizar, páginas a criar>
+```

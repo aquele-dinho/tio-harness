@@ -1,0 +1,64 @@
+---
+name: hexagonal-module
+description: >-
+  Use esta skill para criar, ajustar ou auditar módulos @@stack.language@@/@@stack.framework@@ de @@project.name@@ na arquitetura hexagonal do projeto (nomes de pacotes em `[stack.hexagonal]`).
+  Garante a estrutura @@stack.hexagonal.port_dir@@ + adapter/controller|events|repository|integração, evita @@stack.hexagonal.forbidden_dirs@@,
+  preserva dependência inward-only e mantém modelos de domínio em @@stack.hexagonal.business_dir@@ e persistência em adapter/repository.
+  Acione ao criar capacidade, caso de uso, port, adapter, controller, listener, producer, repository ou client externo.
+---
+
+# Skill: SDD Hexagonal Module
+
+## Pré-condições
+- Ler `AGENTS.md` do repo alvo.
+- Confirmar fonte oficial e/ou item `@@tracker.key@@`.
+@@if stack.base_package@@
+- Pacote raiz: `@@stack.base_package@@`. Em repo com pacote legado divergente, **não** fazer rename parcial: código novo segue o pacote já existente nos arquivos vizinhos.
+@@endif@@
+
+## Estrutura canônica
+```text
+<capacidade>/
+├── @@stack.hexagonal.business_dir@@/
+│   ├── port/
+│   └── <caso-de-uso>/
+└── adapter/
+@@for d in stack.hexagonal.adapter_dirs@@
+    @@if loop.last@@└──@@else@@├──@@endif@@ @@d@@/
+@@endfor@@
+```
+
+## Regras de dependência
+- `@@stack.hexagonal.business_dir@@` define regras de negócio e ports; **não importa** `adapter` nem framework (Spring, JPA, SDK de nuvem).
+- `adapter` implementa `@@stack.hexagonal.port_dir@@`.
+- Entidades de persistência em `adapter/repository`; modelos de domínio em `@@stack.hexagonal.business_dir@@`.
+- DTOs REST/eventos em `adapter/controller` ou `adapter/events`; clientes externos em `adapter/<integracao>`.
+- Módulos só conversam por ports — nenhum lê tabela de outro.
+
+## Naming
+- Caso de uso: `Xxx@@stack.hexagonal.usecase_suffix@@` (sem sufixo `Service`).
+- Port: `XxxPort`. Adapter de persistência: `XxxRepositoryAdapter`. Spring Data: `XxxRepository`.
+- Controller: `XxxController`. Listener/producer: `XxxListener`, `XxxProducer`.
+
+## Processo
+1. Mapear caso de uso e invariantes a partir da fonte oficial.
+2. Modelo de domínio em `@@stack.hexagonal.business_dir@@`; ports em `@@stack.hexagonal.port_dir@@`.
+3. `Xxx@@stack.hexagonal.usecase_suffix@@` usando ports.
+4. Adapters necessários.
+5. Testes unitários do business; funcionais só com endpoint/listener/adapter relevante.
+6. Validar no-watch@@if stack.test_cmd@@ (`@@stack.test_cmd@@`)@@endif@@.
+
+## Antipadrões a bloquear
+- Inventar regra de formato/validação sem fonte (regex, tamanho, dígito, faixa, enum, timeout, SLA, retentativa).
+- Criar @@stack.hexagonal.forbidden_dirs@@ dentro da capacidade.
+- Regra de negócio em controller, listener, repository ou client.
+- Injetar repository Spring Data no business.
+- Estado canônico com nome diferente de `AGENTS.md` §5.
+@@for i in domain.invariants@@
+- Violar: @@i@@
+@@endfor@@
+@@if phasing.future@@
+- Implementar regra de entregas futuras (@@phasing.future@@) na fatia atual sem decisão oficial.
+@@endif@@
+
+Fronteiras detalhadas: `references/hexagonal-boundaries.md`.

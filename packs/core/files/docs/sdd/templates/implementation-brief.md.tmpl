@@ -1,0 +1,49 @@
+# Implementation Brief — <@@sdd.unit@@/capacidade>
+
+## Referência
+- Fonte oficial (ID/seção):
+- Item no @@tracker.name@@ (`@@tracker.key@@`):
+- Repo alvo:
+- @@sdd.unit@@/capacidade:
+- Branch:
+- Base branch:
+- Status @@tracker.name@@ (anterior → atual, via, horário):
+- Via de acesso à fonte:
+- Data:
+
+## Resumo executivo
+<Resumo objetivo do escopo a implementar.>
+
+## Decisões confirmadas
+- <Decisão> — Fonte: <ID + seção>
+
+## Critérios de aceite
+- <Critério> — Fonte: <ID + seção>
+
+## Dependências internas
+- <@@sdd.unit@@/capacidade/repo> — <tipo de dependência>
+
+## Pendências e bloqueios
+> ⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx): <descrição, responsável esperado, impacto em estimativa>
+
+> ⚠️ A DEFINIR: <descrição, decisão necessária, impacto>
+
+## Padrões técnicos aplicáveis
+@@if stack.language@@
+- @@stack.language@@@@if stack.framework@@ / @@stack.framework@@@@endif@@@@if stack.build_tool@@ / @@stack.build_tool@@@@endif@@.
+@@endif@@
+@@if architecture.style@@
+- Arquitetura: @@architecture.style@@.
+@@endif@@
+@@if has.java_spring_hexagonal@@
+- Hexagonal por capacidade: `@@stack.hexagonal.port_dir@@` + `adapter/*`; `@@stack.hexagonal.business_dir@@` não importa `adapter`.
+@@endif@@
+- Testes no-watch.
+- Sem exposição de segredos/env values.
+
+## Fatiamento recomendado
+1. <Fatia vertical pequena e validável>
+2. <Fatia vertical pequena e validável>
+
+## Próximos passos
+- <Skill sugerida ou ação manual>

@@ -1,0 +1,76 @@
+# <Questão de arquitetura> — Nota de Arquitetura
+
+| | |
+|---|---|
+| **Status** | ⚠️ PROPOSTA — para validação arquitetural |
+| **Versão** | 0.1 |
+| **Data do retrato** | <AAAA-MM-DD> |
+| **Elaboração** | <time/pessoa que preparou> |
+| **Validação arquitetural** | @@if architecture.authority@@@@architecture.authority@@@@else@@⚠️ A DEFINIR@@endif@@ |
+| **@@sdd.unit@@ / pendências** | <slug> · <@@sdd.pending_prefix@@-xx> |
+
+> Material de apoio à decisão. Não representa decisão tomada nem solução aprovada. Fatos sobre sistemas de outros
+> times refletem o que foi lido nas datas indicadas, não compromissos desses times.
+
+## Histórico de alteração
+| Versão | Descrição | Data | Responsável |
+|---|---|---|---|
+| 0.1 | Versão inicial para validação | <data> | <responsável> |
+
+## 1. Contexto
+- **Problema:** <uma frase>
+- **Drivers:** <requisito/RNF/AC — fonte ID + §>
+- **Restrições:** <plataforma, prazo, time, regulatório — com fonte>
+- **Já decidido (não rediscutido aqui):** <pressupostos de AGENTS.md §10 relevantes>
+- **Fora de escopo:** <itens>
+
+## 2. Fontes consultadas
+| Fonte | ID | Camada | Versão/data lida | Observação |
+|---|---|---|---|---|
+| @@sources.primary.title@@ | @@if sources.primary.id@@@@sources.primary.id@@@@else@@—@@endif@@ | projeto | | |
+@@for d in architecture.directives@@
+| @@d.title@@ | @@if d.id@@@@d.id@@@@else@@—@@endif@@ | @@if d.scope@@@@d.scope@@@@else@@—@@endif@@ | | |
+@@endfor@@
+| <repositório@branch> | — | código | | |
+
+## 3. O que já existe × o que falta
+| Capacidade | Já existe? | Onde (fonte/código) | Observação |
+|---|---|---|---|
+
+## 4. Alternativas
+### A — <nome>
+<descrição curta; como atende aos drivers; diagrama C4/sequência em Mermaid, se ajudar>
+
+### B — <nome>
+…
+
+### Descartadas
+- <alternativa> — <invariante/pressuposto/escopo que viola>
+
+## 5. Matriz de aderência
+| Critério (camada · origem) | A | B | Evidência |
+|---|---|---|---|
+| <item — ID> | aderente | parcial: <…> | fonte: <ID §> |
+
+## 6. Cenários de atributo de qualidade (QAS)
+| Atributo | Estímulo | Resposta | Medida | Mecanismo (A / B) |
+|---|---|---|---|---|
+
+## 7. Riscos, reversibilidade e dependências
+| Alternativa | Riscos principais | Custo de reverter | Dependências de outros times |
+|---|---|---|---|
+
+## 8. Sugestão para validação
+Sugerimos considerar **<alternativa>** se <premissas>.
+Reavaliar a favor de **<outra>** se <condição>.
+
+## 9. Perguntas para a arquitetura
+| # | Pergunta | Destrava | Quem responde (papel) |
+|---|---|---|---|
+
+## 10. Registro da validação
+_Preenchido apenas após decisão de um arquiteto responsável._
+- **Decisão:** —
+- **Validado/decidido por · em:** —
+- **Condições da aprovação:** —
+- **Referência (ata, página, comentário):** —

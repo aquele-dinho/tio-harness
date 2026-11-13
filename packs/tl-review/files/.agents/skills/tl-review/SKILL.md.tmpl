@@ -1,0 +1,68 @@
+---
+name: tl-review
+description: >-
+  Use esta skill para conduzir a revisão de Tech Lead sobre um @@vcs.mr_long@@ (@@vcs.mr@@) já existente de @@project.name@@.
+  Audita o diff contra AGENTS.md, arquitetura, estados canônicos, segurança e testes; conduz a interação com o Tech Lead humano
+  até aprovação ou rejeição explícita; se aprovado, executa o merge via `@@vcs.cli@@` e dá baixa do item no @@tracker.name@@.
+  Acione quando o usuário pedir revisão de Tech Lead, aprovação final ou merge de um @@vcs.mr@@ existente.
+---
+
+# Skill: SDD TL Review
+
+## Quando usar
+Depois que um @@vcs.mr@@ **já existe** (aberto pelo `review-handoff` ou manualmente). Não cria @@vcs.mr@@ — sem
+@@vcs.mr@@ aberto, informe e recomende `review-handoff`.
+
+## Recomendação de modelo
+Gate final antes de merge em branch protegida: recomenda-se o modelo de raciocínio mais forte disponível.
+A escolha é do usuário.
+
+## Inputs
+- **@@vcs.mr@@ alvo:** número, URL ou branch atual.
+- **Repo alvo.**
+Se o item `@@tracker.key@@` não estiver evidente no título/branch/descrição, pergunte.
+
+## Processo
+1. **Localizar o @@vcs.mr@@:** `@@vcs.view@@` (metadados, pipeline) e `@@vcs.diff@@` (diff completo).
+2. **Revisar o diff** com `references/tl-review-checklist.md`.
+3. **Apresentar achados** (riscos, pendências, pontos fortes) e perguntar explicitamente: aprova, pede ajustes ou rejeita?
+4. **Ciclo iterativo:** responder ajustes/perguntas; registrar comentários relevantes com `@@vcs.note@@`; repetir até aprovação ou desistência explícita.
+5. **Gate de aprovação humana:** só seguir com confirmação **explícita e inequívoca** ("aprovado, pode mesclar").
+   "ok"/"tá bom" **não** autorizam — pergunte: "Confirma o merge do @@vcs.mr@@ <id>?".
+6. **Merge:** `@@vcs.merge@@`, respeitando a estratégia configurada no projeto. Conflito, pipeline falhando ou
+   @@vcs.mr@@ desatualizado → **parar e reportar**.
+7. **Baixa no @@tracker.name@@:**
+   - Perguntar o **status alvo** (nomes variam por projeto).
+@@if has.atlassian@@
+   - `acli jira workitem transition --key <CHAVE> --status "<status informado>"`
+   - `acli jira workitem comment --key <CHAVE> --body "..."` com a URL do @@vcs.mr@@ mesclado.
+@@else@@
+   - Transicionar e comentar com a URL do @@vcs.mr@@ mesclado, pela ferramenta do @@tracker.name@@ disponível.
+@@endif@@
+8. **Reportar:** URL do @@vcs.mr@@ mesclado, branch removida ou não, status resultante, comentário adicionado.
+
+## Regras inegociáveis
+- Todo achado cita evidência real do diff.
+- Nunca mesclar sem aprovação humana explícita.
+- Nunca escolher status sem perguntar; nunca forçar estratégia de merge.
+@@if rules.no_agent_attribution@@
+- Nenhuma menção a uso de agente em @@vcs.mr@@, commit ou comentário.
+@@endif@@
+- Sem segredos.
+
+## Saída esperada
+```text
+Resumo
+- <@@vcs.mr@@ revisado, decisão do TL>
+
+Achados da revisão
+- <ponto>: OK|risco|pendência
+
+Interação com o TL
+- <ajustes pedidos, se houver>
+
+Resultado
+- Merge: <URL ou "não executado — motivo">
+- @@tracker.name@@: <CHAVE> -> <status resultante ou "não executado — motivo">
+- Comentário: <adicionado|não aplicável>
+```

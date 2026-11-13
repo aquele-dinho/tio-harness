@@ -1,0 +1,29 @@
+# TL Review Checklist
+
+Estende `review-handoff/references/review-checklist.md`. Aplique sobre o **diff do @@vcs.mr@@**, não só sobre o working tree local.
+
+## Fonte
+- Fonte oficial/item `@@tracker.key@@` citados no @@vcs.mr@@/brief; critérios de aceite rastreados.
+- Pendências `@@sdd.pending_prefix@@-XX`/`A DEFINIR` preservadas.
+
+## Arquitetura e domínio
+- Fronteiras arquiteturais preservadas@@if architecture.style@@ (@@architecture.style@@)@@endif@@.
+- Estados canônicos preservados@@if domain.correlation_key@@; `@@domain.correlation_key@@` preservado@@endif@@.
+@@for i in domain.invariants@@
+- @@i@@
+@@endfor@@
+@@if phasing.current@@
+- Regras de entregas futuras não invadem @@phasing.current@@ sem decisão.
+@@endif@@
+
+## Qualidade
+- Testes unitários e funcionais cabíveis; validação no-watch com evidência.
+- Sem segredos em logs, docs ou comandos.
+
+## Específico do @@vcs.mr@@
+- Pipeline/CI passando? Branch atualizada em relação à base, sem conflitos?
+- Estratégia de merge do projeto clara?
+- Título/descrição citam o item correto@@if rules.no_agent_attribution@@ e não mencionam uso de agente@@endif@@?
+
+## Sinais de bloqueio (não mesclar)
+Pipeline falhando · conflito · @@vcs.mr@@ desatualizado · aprovação ambígua/ausente · status alvo não informado.

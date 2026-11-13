@@ -1,0 +1,62 @@
+---
+name: implementation-loop
+description: >-
+  Use esta skill para implementar uma feature, capacidade, @@sdd.unit@@ ou serviço de @@project.name@@ a partir de SDD.
+  Coordena o ciclo Observe → Specify → Plan → Act → Verify → Reflect → Repeat, exigindo fonte oficial e/ou item @@tracker.key@@,
+  respeitando AGENTS.md@@if stack.language@@, @@stack.language@@@@endif@@@@if stack.framework@@/@@stack.framework@@@@endif@@, testes no-watch e handoff rastreável.
+  Acione quando o usuário pedir para implementar, construir, adicionar, refatorar ou evoluir algo baseado em spec, @@tracker.name@@ ou @@docs_platform@@.
+---
+
+# Skill: SDD Implementation Loop
+
+## Objetivo
+Transformar uma spec oficial em implementação incremental, validada e rastreável, sem pular a etapa de contexto.
+
+## Inputs esperados
+- **Repo alvo:**@@for r in repos_impl@@@@if r.path@@ `@@r.path@@`@@if not loop.last@@,@@endif@@@@endif@@@@endfor@@ ou novo serviço.
+- **@@sdd.unit@@/capacidade** (ver `AGENTS.md` §6).
+- **Fonte oficial:** ID + seção e/ou item `@@tracker.key@@`.
+- **Escopo da fatia:** caso de uso, endpoint, evento, regra, adapter ou teste.
+
+Sem fonte oficial, não implemente. Peça a referência.
+
+## Acesso à fonte e gate de referência
+Antes do primeiro `Act`: cadeia de fallback e gate de referência do `source-intake`. Indisponibilidade de
+ferramenta **não** libera implementar por suposição. Registre no handoff a via usada e o resultado do gate.
+
+## Loop operacional
+1. **Observe**
+   - Ler `AGENTS.md` do workspace e do repo alvo; usar `source-intake` se ainda não houver brief confiável.
+   - Confirmar a **branch** registrada no brief; se ausente ou diferente do checkout, rodar o gate de branch antes do primeiro `Act`.
+   - Confirmar o **status** no @@tracker.name@@ (a transição só acontece no `source-intake`).
+2. **Specify** — comportamento esperado, contratos, estados, entradas/saídas, critérios de aceite; lacunas como `⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx)`/`⚠️ A DEFINIR`.@@if phasing.current@@ Separar @@phasing.current@@ de entregas seguintes.@@endif@@
+3. **Plan** — fatias verticais curtas; pacotes/arquivos a criar ou alterar; preservar fronteiras arquiteturais.
+4. **Act**
+   - Uma fatia por vez, com nomes do domínio e estados canônicos.
+@@if has.java_spring_hexagonal@@
+   - Regra de negócio em `Xxx@@stack.hexagonal.usecase_suffix@@` (sem sufixo `Service`); nada de @@stack.hexagonal.forbidden_dirs@@ por capacidade.
+@@endif@@
+@@for s in stack.standards@@
+   - @@s@@
+@@endfor@@
+   - **Não invente regra de formato/validação**: sem fonte, estrutura mínima + `⚠️ A DEFINIR` + reporte.
+5. **Verify** — validação em modo no-watch:
+@@for c in stack.setup_cmds@@
+   - pré-requisito: `@@c@@`
+@@endfor@@
+@@if stack.test_cmd@@
+   - `@@stack.test_cmd@@`
+@@endif@@
+@@if stack.verify_cmd@@
+   - `@@stack.verify_cmd@@` (validação completa)
+@@endif@@
+6. **Reflect** — comparar código, testes e contratos contra spec/@@tracker.name@@; falhou → corrigir e repetir; bloqueio por decisão ausente → parar e reportar com impacto.
+7. **Repeat** — até todos os critérios da fatia passarem ou existir bloqueio real.
+
+## Handoff
+Arquivos alterados/criados · comandos executados e resultado · cobertura de critérios de aceite · pendências · próxima fatia recomendada.
+@@if rules.no_agent_attribution@@
+Não mencionar uso de agentes em documentos oficiais, comentários ou commits.
+@@endif@@
+
+Padrões detalhados: `references/implementation-standards.md`.

@@ -1,0 +1,15 @@
+# Hexagonal Boundaries
+
+## Business (`@@stack.hexagonal.business_dir@@`)
+Responsável por regra de negócio, modelos de domínio, casos de uso (`Xxx@@stack.hexagonal.usecase_suffix@@`) e ports.
+Não deve importar adapter, depender de Spring Data Repository, nem conhecer HTTP, mensageria, entidade de persistência ou cliente externo.
+
+## Adapter
+Responsável por entrada REST, eventos, persistência, integração externa e conversão DTO/entidade ↔ domínio.
+Pode implementar ports e usar Spring/JPA/clientes HTTP/mensageria.
+
+## Repository (`adapter/repository`)
+`@Entity` · Spring Data Repository · `XxxRepositoryAdapter implements XxxPort`.
+
+## Controller e events (`adapter/controller`, `adapter/events`)
+Receber payload externo → validar DTO → converter para comando/objeto de domínio → chamar `Xxx@@stack.hexagonal.usecase_suffix@@`.

@@ -1,0 +1,108 @@
+{
+ "_doc": "Exemplo de changeset para scripts/sdd/jira-changeset.py. Blocos opcionais; executados na ordem criar → mover → atualizar_sp → rotular → desrotular → definir_descricao → copiar_descricao → cancelar → transicionar → comentar. As chaves criadas são gravadas de volta em criar[].key (idempotência). Use '@ref:<ref>' para apontar para um item criado no mesmo changeset. Comentários não mencionam ferramenta nem autoria automatizada.",
+ "projeto": "@@atlassian.jira_project@@",
+ "rotulos_padrao": [
+  "SDD"
+ ],
+ "cancelamento": {
+  "motivo": "Criação Incorreta"
+ },
+ "criar": [
+  {
+   "ref": "HIST",
+   "tipo": "História",
+   "pai": "@@atlassian.jira_project@@-44",
+   "resumo": "Nome da história",
+   "descricao": [
+    "Parágrafo 1.",
+    "Origem: @@sdd.spec_dir@@/NN-slug.md §9."
+   ]
+  },
+  {
+   "ref": "T-01",
+   "tipo": "Sub-tarefa",
+   "pai": "@ref:HIST",
+   "resumo": "T-01 — Título da subtarefa",
+   "sp": 3,
+   "descricao": [
+    "Descrição.",
+    "⚠️ Bloqueada: P-XX."
+   ]
+  }
+ ],
+ "mover": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "de": "@@atlassian.jira_project@@-45",
+   "para": "@@atlassian.jira_project@@-547"
+  }
+ ],
+ "atualizar_sp": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "de": null,
+   "para": 5
+  }
+ ],
+ "rotular": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "rotulo": "condicional"
+  }
+ ],
+ "desrotular": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "rotulo": "rotulo-antigo"
+  }
+ ],
+ "definir_descricao": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "espera_inicio": "Início do texto atual, para não sobrescrever conteúdo inesperado",
+   "paragrafos": [
+    "Como <ator>, quero <ação> para <benefício>."
+   ],
+   "referencia": "@@atlassian.site@@/wiki/spaces/@@atlassian.space@@/pages/0000000000"
+  }
+ ],
+ "copiar_descricao": [
+  {
+   "de": "@@atlassian.jira_project@@-000",
+   "para": "@@atlassian.jira_project@@-001",
+   "sobrescrever": false
+  }
+ ],
+ "cancelar": [
+  {
+   "key": "@@atlassian.jira_project@@-000",
+   "comentario": "Cancelado em AAAA-MM-DD: motivo, com referência à spec.",
+   "zerar_sp": true
+  },
+  {
+   "key": "@@atlassian.jira_project@@-001",
+   "comentario": "Cancelado em AAAA-MM-DD por duplicidade: o escopo está coberto por @ref.",
+   "link": {
+    "tipo": "Duplicate",
+    "para": "@ref:T-01"
+   }
+  }
+ ],
+ "transicionar": [
+  {
+   "key": "@@atlassian.jira_project@@-002",
+   "para": "Pronto",
+   "comentario": "Status corrigido: código mesclado em developer (commit abc1234)."
+  }
+ ],
+ "comentar": [
+  {
+   "key": "@@atlassian.jira_project@@-003",
+   "comentario": [
+    "Primeiro parágrafo (usado na checagem de idempotência).",
+    "- item",
+    "- item"
+   ]
+  }
+ ]
+}

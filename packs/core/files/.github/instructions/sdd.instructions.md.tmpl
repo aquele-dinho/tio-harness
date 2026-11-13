@@ -1,0 +1,23 @@
+---
+name: 'Convenções SDD — @@project.name@@'
+description: 'Convenções de escrita para as especificações SDD de @@project.name@@'
+applyTo: 'docs/sdd/**'
+---
+# Convenções para especificações SDD
+
+Aplicam-se a qualquer arquivo em `docs/sdd/**`. Complementam a fonte única `AGENTS.md`.
+
+- **Idioma:** @@project.output_language@@, tom técnico e objetivo.
+- **Ancoragem:** cada regra cita a origem (@@sources.primary.title@@ § ou documento-fonte + ID).
+  Nunca inventar regra de negócio, valor de SLA, código de erro ou contrato de API.
+- **Estados canônicos:** usar exatamente os nomes de `AGENTS.md` §5. Não criar sinônimos.
+- **Pendências:** `> ⚠️ PENDÊNCIA (@@sdd.pending_prefix@@-xx): <o que falta e quem responde>`, vinculada ao item
+  de trabalho afetado. Sem pendência catalogada: `> ⚠️ A DEFINIR: ...`.
+- **Estrutura:** seguir `docs/sdd/TEMPLATE-spec.md` (não remover seções; se não se aplica, escrever
+  "Não se aplica" com justificativa).
+- **Itens de trabalho:** granularidade estimável, componente afetado indicado, mapeamento 1:1 com o @@tracker.name@@.
+- **Diagramas:** Mermaid (`sequenceDiagram`/`stateDiagram-v2`).
+- **Contratos de API:** método, path, request/response e erros; `⚠️ PROPOSTA` quando não confirmado.
+@@if phasing.current@@
+- **Faseamento:** deixar explícito o que é da entrega atual (@@phasing.current@@) vs. entregas seguintes.
+@@endif@@

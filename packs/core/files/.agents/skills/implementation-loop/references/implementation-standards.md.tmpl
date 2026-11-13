@@ -1,0 +1,57 @@
+# @@project.name@@ — Implementation Standards
+
+## Fontes de verdade
+- Workspace e repo alvo: `AGENTS.md`.
+- Oficial: @@sources.primary.title@@ e documentos de `AGENTS.md` §2, na versão viva.
+@@if sources.archive_dirs@@
+- @@sources.archive_dirs@@ não são fonte viva.
+@@endif@@
+
+## Stack
+@@if stack.language@@
+- Linguagem: @@stack.language@@.
+@@endif@@
+@@if stack.framework@@
+- Framework: @@stack.framework@@.
+@@endif@@
+@@if stack.build_tool@@
+- Build: @@stack.build_tool@@.
+@@endif@@
+@@if stack.base_package@@
+- Pacote/namespace raiz: `@@stack.base_package@@`.
+@@endif@@
+@@if architecture.style@@
+- Arquitetura: @@architecture.style@@.
+@@endif@@
+
+## Pressupostos consolidados
+@@for p in architecture.principles@@
+- @@p@@
+@@endfor@@
+
+## Invariantes de domínio
+@@for i in domain.invariants@@
+- @@i@@
+@@endfor@@
+- Não renomear estados canônicos@@if domain.correlation_key@@ nem `@@domain.correlation_key@@`@@endif@@.
+
+## Comandos
+@@for c in stack.setup_cmds@@
+- Pré-requisito: `@@c@@`
+@@endfor@@
+@@if stack.test_cmd@@
+- Testes: `@@stack.test_cmd@@`
+@@endif@@
+@@if stack.verify_cmd@@
+- Validação completa: `@@stack.verify_cmd@@`
+@@endif@@
+- Sempre modo no-watch.
+
+## Testes
+Confirme o layout real inspecionando o diretório de testes do repo alvo antes de criar arquivo.
+@@if stack.unit_test_dir@@
+- Unitários: `@@stack.unit_test_dir@@/**`.
+@@endif@@
+@@if stack.functional_test_dir@@
+- Funcionais: `@@stack.functional_test_dir@@/**`.
+@@endif@@

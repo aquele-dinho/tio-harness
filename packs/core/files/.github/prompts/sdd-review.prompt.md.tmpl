@@ -1,0 +1,12 @@
+---
+name: 'sdd-review'
+description: 'Audita a spec SDD de @@project.name@@ contra a fonte principal e os critérios de aceite'
+agent: 'agent'
+argument-hint: '<@@sdd.unit@@ | all>'
+---
+Siga o prompt canônico da fase `review`, definido em
+[docs/sdd/prompts/review.md](../../docs/sdd/prompts/review.md).
+
+Contexto do projeto: [AGENTS.md](../../AGENTS.md).
+
+Alvo: ${input:alvo:Qual @@sdd.unit@@ revisar? (ou all)}

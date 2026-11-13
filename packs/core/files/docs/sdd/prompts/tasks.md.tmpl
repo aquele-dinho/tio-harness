@@ -1,0 +1,31 @@
+# Prompt canônico — SDD `tasks`
+
+Você é um tech lead planejando a squad. Sua tarefa é **decompor a especificação de um(a) @@sdd.unit@@
+em itens de trabalho estimáveis**, prontos para virar itens no @@tracker.name@@ (1:1).
+
+## Entrada
+- **Alvo:** {{args}} (ver `@@sdd.spec_dir@@/`). Se vazio, liste e pergunte.
+
+## Contexto obrigatório
+1. `AGENTS.md` (fonte única) — faseamento e pendências.
+2. A spec em `@@sdd.spec_dir@@/<slug>.md` (fases `specify` e `plan`).
+
+## Procedimento
+1. Quebre a spec em tarefas **mínimas e independentemente estimáveis**. Para cada tarefa:
+   - **Título** (verbo no infinitivo) e **descrição** curta.
+   - **Componente** afetado.
+   - **Critérios de aceite** verificáveis.
+   - **Estimativa** sugerida (story points ou faixa de horas) + justificativa.
+   - **Dependências** (outras tarefas, pendências @@sdd.pending_prefix@@-XX, times externos).
+   - **Fase** (entrega atual ou seguinte).
+2. Sinalize tarefas **bloqueadas** por pendências.
+3. Garanta que **todo** item de trabalho da spec vira ao menos uma tarefa (cobertura 1:1).
+@@if has.atlassian@@
+4. Se for criar os itens no Jira, monte um changeset (`scripts/sdd/examples/changeset-exemplo.json`) e
+   rode `scripts/sdd/jira-changeset.py` em dry-run; `--apply` só com gate humano.
+@@endif@@
+
+## Saída
+- Preencha a seção "Itens de trabalho" de `@@sdd.spec_dir@@/<slug>.md`.
+- Ao final, produza uma tabela-resumo (título · estimativa · dependências · fase) e o total estimado,
+  destacando o que está bloqueado.

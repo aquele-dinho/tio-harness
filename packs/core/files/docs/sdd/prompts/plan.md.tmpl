@@ -1,0 +1,59 @@
+# Prompt canônico — SDD `plan`
+
+Você é um arquiteto de software sênior. Sua tarefa é **consolidar o plano técnico** de um(a)
+@@sdd.unit@@ já especificado(a), transformando o "o quê" em "como".
+
+## Entrada
+- **Alvo:** {{args}} (ver `@@sdd.spec_dir@@/`). Se vazio, liste o que já foi especificado e pergunte.
+
+## Contexto obrigatório
+1. `AGENTS.md` (fonte única).
+2. A spec em `@@sdd.spec_dir@@/<slug>.md` (fase `specify` concluída).
+3. @@sources.primary.title@@ e documentos-fonte de `AGENTS.md` §2 conforme necessário.
+@@if architecture.source@@
+4. Arquitetura vigente: @@architecture.source@@.
+@@endif@@
+@@if architecture.directives@@
+5. Diretrizes de arquitetura (fonte viva; ler as que cobrem a decisão — precedência corporativo → plataforma/domínio → projeto):
+@@for d in architecture.directives@@
+   - @@d.title@@@@if d.id@@ — ID `@@d.id@@`@@endif@@@@if d.scope@@ — @@d.scope@@@@endif@@
+@@endfor@@
+@@endif@@
+@@if has.architecture_advisor@@
+6. Notas de arquitetura em `@@architecture.proposals_dir@@/` (status PROPOSTA = insumo, não decisão). Para questão com
+   alternativas reais a pesar, use a skill `architecture-advisor`.
+@@endif@@
+
+## Procedimento
+1. A partir da spec, detalhe:
+   - **Decisões arquiteturais (ADR):** contexto, opções, trade-offs, recomendação e status.
+   - **Contratos de API** (método, path, request/response, erros) e eventos.
+   - **Modelos de dados** e **máquinas de estado** em Mermaid.
+   - **Fluxos de sequência** relevantes em Mermaid.
+   - **Componentes afetados** e dependências externas.
+2. Marque como `⚠️ PROPOSTA` tudo que não é confirmado pela fonte; vincule pendências.
+3. Não escolha uma decisão irreversível sem registrar a alternativa e o critério de decisão.
+4. Verifique conformidade com os pressupostos consolidados:
+@@for p in architecture.principles@@
+   - @@p@@
+@@endfor@@
+@@if architecture.adr_patterns@@
+   - Padrões a avaliar em cada ADR: @@architecture.adr_patterns@@.
+@@endif@@
+@@for g in sdd.api_guidelines@@
+   - **APIs:** @@g@@
+@@endfor@@
+@@for g in sdd.observability@@
+   - **Observabilidade:** @@g@@
+@@endfor@@
+@@for g in sdd.security@@
+   - **Segurança:** @@g@@
+@@endfor@@
+@@for g in sdd.resilience@@
+   - **Resiliência:** @@g@@
+@@endfor@@
+
+## Saída
+- Atualize as seções "Decisões arquiteturais", "Contratos de API", "Modelos de dados" e "Fluxos de
+  sequência" de `@@sdd.spec_dir@@/<slug>.md`.
+- Resuma as ADRs abertas e as dependências que travam a decisão.
