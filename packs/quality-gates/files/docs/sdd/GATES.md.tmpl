@@ -20,5 +20,8 @@ As regras de permissão casam pelo **início** do comando: formas como `git push
 `git push origin +main` não batem no `deny`, mas caem no `ask` de todo `git push` — um humano confirma. Proteja a
 branch base no servidor (`@@vcs.base_branch@@` protegida) para fechar o caso de vez.
 
+Uma regra `ask` ou `deny` vale para o comando **inteiro**: uma cadeia como `git commit -m x && git push` é recusada
+por completo (o commit também não acontece). Peça ao agente para executar `commit` e `push` em comandos separados.
+
 As permissões valem para o Claude Code. Para os demais agentes, o gate de CI continua valendo, mas a confirmação
 antes do push depende da configuração de cada ferramenta.

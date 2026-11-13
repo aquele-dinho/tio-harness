@@ -25,7 +25,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 ROOT = Path(__file__).resolve().parent.parent
 PACKS_DIR = ROOT / "packs"
 BRIEFING_TEMPLATE = ROOT / "briefing" / "briefing.template.toml"
