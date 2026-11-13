@@ -18,8 +18,14 @@ type Completer interface {
 	Complete(ctx context.Context, system, user string, maxTokens int) (string, llm.Usage, error)
 }
 
-// Condition é um jeito de montar o prompt de sistema.
-type Condition struct{ Name, System string }
+// Condition é um jeito de montar o prompt de sistema (runner llm) ou a pasta de trabalho do agente (runner claude).
+type Condition struct {
+	Name, System string
+	Dir          string   // runner claude: pasta copiada para o agente trabalhar ("" = pasta vazia, sem harness)
+	Append       string   // runner claude: texto acrescentado ao prompt de sistema do agente
+	Drop         []string // runner claude: arquivos (relativos a Dir) removidos da cópia
+	Only         []string // runner claude: se preenchido, só estes arquivos (relativos a Dir) vão para a cópia
+}
 
 const (
 	neutralSystem = "You are a helpful engineering assistant."
@@ -32,9 +38,9 @@ const (
 //   - harness: prompt neutro + o AGENTS.md instalado, carregado como os agentes carregam.
 func Conditions(agentsMD string) []Condition {
 	return []Condition{
-		{"neutral", neutralSystem},
-		{"generic", genericSystem},
-		{"harness", neutralSystem + "\n\n# Project instructions (AGENTS.md, auto-loaded)\n" + agentsMD},
+		{Name: "neutral", System: neutralSystem},
+		{Name: "generic", System: genericSystem},
+		{Name: "harness", System: neutralSystem + "\n\n# Project instructions (AGENTS.md, auto-loaded)\n" + agentsMD},
 	}
 }
 
@@ -53,7 +59,7 @@ func PickConditions(all []Condition, names string) ([]Condition, error) {
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("condição desconhecida %q (use neutral, generic ou harness)", n)
+			return nil, fmt.Errorf("condição desconhecida %q (use neutral, generic, harness, prose-only ou enforce-only)", n)
 		}
 	}
 	return out, nil
@@ -78,15 +84,17 @@ func FilterProbes(probes []Probe, prefixes string) []Probe {
 
 // Result é uma sonda numa condição.
 type Result struct {
-	Probe        string `json:"probe"`
-	Kind         string `json:"kind"`
-	Condition    string `json:"condition"`
-	Pass         bool   `json:"pass"`
-	Empty        bool   `json:"empty"`
-	Truncated    bool   `json:"truncated"`
-	Retried      bool   `json:"retried"`
-	Answer       string `json:"answer"`
-	PromptTokens int    `json:"prompt_tokens"`
+	Probe        string  `json:"probe"`
+	Kind         string  `json:"kind"`
+	Condition    string  `json:"condition"`
+	Pass         bool    `json:"pass"`
+	Empty        bool    `json:"empty"`
+	Truncated    bool    `json:"truncated"`
+	Retried      bool    `json:"retried"`
+	Answer       string  `json:"answer"`
+	PromptTokens int     `json:"prompt_tokens"`
+	CostUSD      float64 `json:"cost_usd,omitempty"`
+	Turns        int     `json:"turns,omitempty"`
 }
 
 // Run executa cada sonda em cada condição. Falha de servidor aborta (resultado parcial enganaria).
@@ -131,6 +139,7 @@ type Summary struct {
 	Truncated    int     `json:"truncated"`
 	AvgPrompt    int     `json:"avg_prompt_tokens"`
 	Rate         float64 `json:"project_pass_rate"`
+	CostUSD      float64 `json:"cost_usd,omitempty"`
 }
 
 // Summarize calcula o resumo por condição, na ordem em que as condições aparecem.
@@ -156,6 +165,7 @@ func Summarize(rs []Result) []Summary {
 				s.ProjectPass++
 			}
 		}
+		s.CostUSD += r.CostUSD
 		if r.Empty {
 			s.Empty++
 		}
@@ -187,10 +197,14 @@ func Lift(sums []Summary) (lift float64, ok bool) {
 	var harness *Summary
 	best := -1.0
 	for i := range sums {
-		if sums[i].Condition == "harness" {
+		switch sums[i].Condition {
+		case "harness":
 			harness = &sums[i]
-		} else if sums[i].Rate > best {
-			best = sums[i].Rate
+		case "prose-only", "enforce-only": // variantes do harness, não são linha de base
+		default:
+			if sums[i].Rate > best {
+				best = sums[i].Rate
+			}
 		}
 	}
 	if harness == nil || best < 0 {
@@ -242,6 +256,16 @@ func Report(w io.Writer, probes []Probe, rs []Result, conds []Condition) {
 		fmt.Fprintf(w, "%-10d", s.AvgPrompt)
 	}
 	fmt.Fprintln(w)
+	for _, s := range sums {
+		if s.CostUSD > 0 {
+			fmt.Fprintf(w, "%-28s", "custo (US$)")
+			for _, s := range sums {
+				fmt.Fprintf(w, "%-10s", fmt.Sprintf("%.3f", s.CostUSD))
+			}
+			fmt.Fprintln(w)
+			break
+		}
+	}
 	for _, s := range sums {
 		if s.Truncated > 0 {
 			fmt.Fprintf(w, "AVISO: %d resposta(s) de %q truncadas — o resultado subestima o modelo; aumente --max-tokens\n", s.Truncated, s.Condition)

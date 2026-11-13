@@ -19,6 +19,7 @@ type Probe struct {
 	Question string
 	Expect   string // descrição humana do que conta como acerto
 	Check    func(answer string) bool
+	Behavior *Behavior // só no runner claude: sonda que exige o agente agindo num repositório git descartável
 }
 
 // Project é o briefing instalado (project.json) + o AGENTS.md que os agentes recebem.

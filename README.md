@@ -101,3 +101,7 @@ cd harness && go build -o bin/tioh-agent ./cmd/tioh-agent
 As perguntas são geradas do próprio briefing (branch, comando de teste, estados, formato de commit, lacunas) e a
 correção é por regex, sem LLM-juiz. Resultado de uma amostra pequena num modelo pequeno: indício, não prova.
 
+Para medir o harness **dentro do agente real** (CLAUDE.md, AGENTS.md e `.claude/settings.json` carregados pelo Claude Code,
+com cenários de commit e push num repositório descartável), use `--runner claude --scenarios`; custa tokens da sua conta
+e o projeto instalado vai para a API. Detalhes em [harness/README.md](harness/README.md).
+

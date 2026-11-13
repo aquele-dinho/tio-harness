@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -221,6 +223,11 @@ func newEval(o *options, stdout, stderr io.Writer) *cobra.Command {
 		minLift   float64
 		only      string
 		condNames string
+		runner    string
+		agentBin  string
+		agentMod  string
+		maxCost   float64
+		scenarios bool
 	)
 	cmd := &cobra.Command{
 		Use:   "eval",
@@ -229,8 +236,15 @@ func newEval(o *options, stdout, stderr io.Writer) *cobra.Command {
 formato de commit, lacunas A DEFINIR...) e as faz ao modelo em 3 condições: neutral (sem harness), generic
 (sem harness, mas com uma regra genérica de "não invente") e harness (AGENTS.md instalado no prompt de sistema).
 A correção é determinística (regex), sem LLM-juiz. Com --min-pass/--min-lift vira um gate: sai com erro se o
-harness não entregar.`,
+harness não entregar.
+
+Com --runner claude, em vez de um modelo local, as sondas rodam no Claude Code de verdade (claude -p) numa cópia do
+projeto: o harness é carregado como o agente carrega (CLAUDE.md, AGENTS.md, .claude/settings.json). --scenarios acrescenta
+sondas comportamentais num repositório git descartável (commit no formato do projeto, sem trailer de agente; push sem
+aprovação humana) e a condição prose-only (harness sem .claude/settings.json), que separa texto de enforcement.
+Custa tokens da sua conta Claude: --max-cost limita o gasto total.`,
 		Example: `  tioh-agent eval --project ~/Projects/meu-projeto
+  tioh-agent eval --project ~/Projects/meu-projeto --runner claude --scenarios --agent-model haiku
   tioh-agent eval --project . --min-pass 0.8 --min-lift 0.3 --json avaliacao.json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -238,29 +252,62 @@ harness não entregar.`,
 			if err != nil {
 				return err
 			}
-			probes := eval.FilterProbes(eval.GenerateProbes(proj), only)
-			if len(probes) == 0 {
+			probes := eval.GenerateProbes(proj)
+			if runner == "claude" && scenarios {
+				probes = append(probes, eval.AgentProbes(proj)...)
+			}
+			if probes = eval.FilterProbes(probes, only); len(probes) == 0 {
 				return fmt.Errorf("nenhuma sonda para %q neste briefing", only)
 			}
 			ctx, cancel := context.WithTimeout(cmd.Context(), o.timeout)
 			defer cancel()
-			client := newClient(o)
-			if err := preflight(ctx, client, o.model); err != nil {
-				return err
-			}
-			conds, err := eval.PickConditions(eval.Conditions(proj.Agents), condNames)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(stderr, "modelo %s · %d sondas × %d condições\n", o.model, len(probes), len(conds))
-			results, err := eval.Run(ctx, client, probes, conds, maxTokens, stderr)
-			if err != nil {
-				return err
+			var (
+				results []eval.Result
+				conds   []eval.Condition
+				label   = o.model
+			)
+			switch runner {
+			case "llm":
+				if scenarios {
+					return fmt.Errorf("--scenarios exige --runner claude (precisa de um agente que use ferramentas)")
+				}
+				client := newClient(o)
+				if err := preflight(ctx, client, o.model); err != nil {
+					return err
+				}
+				if conds, err = eval.PickConditions(eval.Conditions(proj.Agents), condNames); err != nil {
+					return err
+				}
+				fmt.Fprintf(stderr, "modelo %s · %d sondas × %d condições\n", o.model, len(probes), len(conds))
+				if results, err = eval.Run(ctx, client, probes, conds, maxTokens, stderr); err != nil {
+					return err
+				}
+			case "claude":
+				bin, lerr := exec.LookPath(agentBin)
+				if lerr != nil {
+					return fmt.Errorf("não achei %q no PATH (use --agent-bin)", agentBin)
+				}
+				abs, aerr := filepath.Abs(project)
+				if aerr != nil {
+					return aerr
+				}
+				if conds, err = eval.PickConditions(eval.AgentConditions(abs, scenarios), condNames); err != nil {
+					return err
+				}
+				agent := &eval.ClaudeAgent{Bin: bin, Model: agentMod, MaxCost: maxCost}
+				label = "claude -p (" + agentMod + ")"
+				fmt.Fprintf(stderr, "agente %s · %d sondas × %d condições · teto de custo US$ %.2f\n", label, len(probes), len(conds), maxCost)
+				if results, err = eval.RunAgent(ctx, agent, probes, conds, stderr); err != nil {
+					return err
+				}
+				fmt.Fprintf(stderr, "gasto: US$ %.3f (tokens de prompt incluem o prompt-base do Claude Code)\n", agent.Spent)
+			default:
+				return fmt.Errorf("runner desconhecido %q (use llm ou claude)", runner)
 			}
 			eval.Report(stdout, probes, results, conds)
 			sums := eval.Summarize(results)
 			if jsonOut != "" {
-				b, _ := json.MarshalIndent(map[string]any{"model": o.model, "summary": sums, "results": results}, "", "  ")
+				b, _ := json.MarshalIndent(map[string]any{"model": label, "runner": runner, "summary": sums, "results": results}, "", "  ")
 				if err := os.WriteFile(jsonOut, b, 0o644); err != nil {
 					return err
 				}
@@ -283,6 +330,11 @@ harness não entregar.`,
 	f.Float64Var(&minPass, "min-pass", 0, "gate: taxa mínima de acertos do harness nas sondas do projeto (0 = sem gate)")
 	f.StringVar(&only, "only", "", "só as sondas cujo ID começa com algum destes prefixos, separados por vírgula (ex.: gap:,recall:)")
 	f.StringVar(&condNames, "conditions", "", "condições a rodar, separadas por vírgula (padrão: neutral,generic,harness)")
+	f.StringVar(&runner, "runner", "llm", "quem responde: llm (modelo local, AGENTS.md no prompt de sistema) ou claude (Claude Code de verdade, claude -p)")
+	f.StringVar(&agentBin, "agent-bin", "claude", "runner claude: executável do agente")
+	f.StringVar(&agentMod, "agent-model", "haiku", "runner claude: modelo do agente (haiku é o teste mais duro para regras em texto e o mais barato)")
+	f.Float64Var(&maxCost, "max-cost", 3, "runner claude: teto de gasto total em US$ (0 = sem teto)")
+	f.BoolVar(&scenarios, "scenarios", false, "runner claude: inclui sondas comportamentais (commit, push) e a condição prose-only")
 	f.Float64Var(&minLift, "min-lift", -1, "gate: ganho mínimo do harness sobre a melhor linha de base, de -1 a 1 (-1 = sem gate)")
 	return cmd
 }

@@ -31,7 +31,7 @@ Briefings de projetos atendidos ficam em `briefings/` e são **ignorados pelo Gi
   grep -rn '@@' /tmp/tioh-t --exclude-dir=scripts ; python3 bin/tioh.py check /tmp/tioh-t
   ```
 - **Harness em Go (`harness/`, `tioh-agent`):** antes de commitar mudanças nele: `cd harness && gofmt -l . ; go vet ./... && go test ./... -race`.
-  `eval` mede o harness instalado com um modelo local (sondas geradas do briefing); `ask` é somente leitura e confinado a `--root`;
+  `eval` mede o harness instalado com um modelo local (sondas geradas do briefing) ou, com `--runner claude`, no Claude Code de verdade (custa tokens; nunca rode num briefing real sem a decisão do dono); `ask` é somente leitura e confinado a `--root`;
   qualquer ferramenta que escreva/execute exige gate humano e teste de sandbox.
 - **Enforcement:** regra que importa deve ser verificada por código (pack `quality-gates`), não só escrita no AGENTS.md.
 - Não registrar uso de agentes em commits, comentários ou documentos; sem `Co-Authored-By`.
