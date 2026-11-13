@@ -1,0 +1,7 @@
+# Fins de linha: LF em qualquer SO (inclusive no checkout do Windows), para scripts com shebang, hashes do
+# `tioh check` e arquivos instalados serem idênticos em macOS, Linux e Windows.
+* text=auto eol=lf
+# Scripts do Windows precisam de CRLF (nenhum hoje; a regra evita surpresa se surgir um).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
